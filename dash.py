@@ -662,7 +662,27 @@ def render_dashboard(df: pd.DataFrame, source: str):
     st.download_button("📥 필터링 데이터 다운로드 (CSV)", data=csv,
                        file_name=f"1P_Ops_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                        mime="text/csv")
- 
+ # ─────────────────────────────────────────────
+# 🔐 PASSWORD CHECK
+# ─────────────────────────────────────────────
+def check_password():
+    PASSWORD = st.secrets["APP_PASSWORD"]
+
+    def password_entered():
+        if st.session_state["password"] == PASSWORD:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("🔐 비밀번호 입력", type="password", on_change=password_entered, key="password")
+        st.stop()
+
+    elif not st.session_state["password_correct"]:
+        st.text_input("🔐 비밀번호 입력", type="password", on_change=password_entered, key="password")
+        st.error("비밀번호 틀림")
+        st.stop()
  
 # ─────────────────────────────────────────────
 # 8. MAIN
