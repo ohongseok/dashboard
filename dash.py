@@ -319,7 +319,7 @@ def load_google_sheet_values(sheet_name: str, worksheet_name: Optional[str] = No
         dict(st.secrets["gcp_service_account"])
     )
     client = gspread.authorize(creds)
-    workbook = client.open("1P 상품등록 통합페이지")
+    workbook = client.opens(sheet_name)
     worksheet = workbook.worksheet(worksheet_name) if worksheet_name else workbook.sheet1
     return worksheet.get_all_values()
 
