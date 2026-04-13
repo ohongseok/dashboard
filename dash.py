@@ -4,21 +4,35 @@ from typing import Optional, List, Dict
 
 import gspread
 import pandas as pd
-import requests
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from google.oauth2.service_account import Credentials
+from datetime import datetime
 
 # ---------------------------
-# Page Config (원본 설정 유지)
+# 0. Page & Theme Configuration
 # ---------------------------
-st.set_page_config(page_title="KREAM Ops Dashboard", layout="wide")
+st.set_page_config(
+    page_title="KREAM Ops Intelligence Dashboard", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-ILLEGAL_EXCEL_CHARS_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
-HEADER_KEYWORDS = ["요청자", "검토자", "브랜드", "등록 완료일", "국내/해외"]
+# 커스텀 CSS (대기업 대시보드 느낌의 깔끔한 스타일링)
+st.markdown("""
+    <style>
+    [data-testid="stMetricValue"] { font-size: 28px; color: #007BFF; }
+    .main { background-color: #F8F9FA; }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; font-weight: 600; }
+    </style>
+    """, unsafe_allow_html=True)
 
-TRUE_VALUES = {"true", "1", "y", "yes", "완료", "o", "v", "✓", "check", "checked"}
-FALSE_VALUES = {"false", "0", "n", "no", "미완료", "x", "-", ""}
-
+# ---------------------------
+# 1. Constants & Mappings
+# ---------------------------
 COLUMN_ALIASES = {
     "brand": ["브랜드(영문)", "브랜드"],
     "requester": ["요청자"],
@@ -30,7 +44,6 @@ COLUMN_ALIASES = {
     "registration_request_date": ["등록 요청일"],
     "registration_done_flag": ["등록 완료 (앱 노출 시 체크)", "등록 완료"],
     "registration_done_date": ["등록 완료일"],
-    "registration_week": ["등록 주차"],
     "country_type": ["국내/해외"],
     "delay_reason": ["지연 사유"],
     "issue_note": ["브랜드별 검토사항"],
@@ -38,34 +51,14 @@ COLUMN_ALIASES = {
     "remark": ["비고"],
 }
 
-DELAY_MAPPING = {
-    "배송/입고": ["배송", "입고", "출고", "리드타임", "arrival", "ship"],
-    "샘플/실물확인": ["샘플", "실물", "확인", "수령"],
-    "검수/정가품": ["가품", "정가품", "검수", "authentic"],
-    "데이터/품번": ["품번", "sku", "데이터", "정보", "리스트업", "모델명"],
-    "담당자/커뮤니케이션": ["담당", "회신", "커뮤니케이션", "응답", "전달"],
-    "가격/운영판단": ["가격", "원가", "마진", "불가", "보류"],
-    "기타 이슈": ["이슈", "지연"],
-}
-
-ISSUE_MAPPING = {
-    "사이즈/스펙": ["사이즈", "핏", "치수", "스펙"],
-    "배송/납기": ["배송", "납기", "입고", "출고"],
-    "정가품/검수": ["가품", "정가품", "검수"],
-    "가격/마진": ["가격", "마진", "원가"],
-    "상품데이터": ["품번", "sku", "이미지", "정보", "상세", "리스트업"],
-    "운영협의": ["협의", "논의", "확인", "전달", "요청"],
-}
+TRUE_VALUES = {"true", "1", "y", "yes", "완료", "o", "v", "✓", "check", "checked"}
 
 # ---------------------------
-# helpers
+# 2. Advanced Helper Functions
 # ---------------------------
 def normalize_text(value) -> str:
     if pd.isna(value): return ""
     return str(value).strip()
-
-def normalize_colname(value) -> str:
-    return re.sub(r"\s+", " ", normalize_text(value))
 
 def split_people(raw: str) -> List[str]:
     text = normalize_text(raw)
@@ -74,228 +67,242 @@ def split_people(raw: str) -> List[str]:
 
 def person_group(token: str) -> str:
     t = re.sub(r"[\s\-\.\(\)]+", "", normalize_text(token))
-    if not t: return "Famous"
+    if not t: return "Unknown"
     if t.upper() == "3P" or re.fullmatch(r"[가-힣]+", t): return "Famous"
     return "KREAM"
-
-def requester_group(raw: str) -> str:
-    tokens = split_people(raw)
-    if not tokens: return "Famous"
-    groups = {person_group(t) for t in tokens}
-    if groups == {"KREAM"}: return "KREAM"
-    if groups == {"Famous"}: return "Famous"
-    return "Mixed"
 
 def parse_bool(v) -> bool:
     if pd.isna(v): return False
     if isinstance(v, bool): return v
-    if isinstance(v, (int, float)): return float(v) != 0
     s = str(v).strip().lower()
     return s in TRUE_VALUES
 
-def parse_date_series(series: pd.Series) -> pd.Series:
-    parsed = pd.to_datetime(series, errors="coerce")
-    if parsed.notna().mean() < 0.3:
-        parsed = pd.to_datetime(series, errors="coerce", format="%y.%m.%d")
-    return parsed
-
-def category_from_text(text: str, mapping: Dict[str, List[str]], default: str = "기타") -> str:
-    t = normalize_text(text).lower()
-    if not t or t == "-": return "없음"
-    for category, keywords in mapping.items():
-        if any(k in t for k in keywords): return category
-    return default
-
-def safe_rate(num: int, den: int) -> float:
-    return round((num / den) * 100, 1) if den else 0.0
-
-def growth(cur: int, prev: int) -> float:
-    if prev == 0: return 0.0
-    return round(((cur - prev) / prev) * 100, 1)
-
-def find_header_row(values: List[List[str]]) -> int:
-    best_idx, best_score = 0, -1
-    for idx, row in enumerate(values[:10]):
-        cleaned = [normalize_colname(c) for c in row]
-        if not any(cleaned): continue
-        score = sum(2 for cell in cleaned for kw in HEADER_KEYWORDS if kw in cell)
-        score += len([c for c in cleaned if c]) * 0.05
-        if score > best_score:
-            best_score, best_idx = score, idx
-    return best_idx
-
-def values_to_dataframe(values: List[List[str]]) -> pd.DataFrame:
-    if not values: return pd.DataFrame()
-    header_row = find_header_row(values)
-    headers = [normalize_colname(h) or f"col_{i}" for i, h in enumerate(values[header_row])]
-    rows = values[header_row + 1:]
-    df = pd.DataFrame(rows)
-    df.columns = headers[:len(df.columns)]
-    return df.dropna(how="all").reset_index(drop=True)
-
-def find_column(df: pd.DataFrame, aliases: List[str]) -> Optional[str]:
-    for alias in aliases:
-        a_norm = normalize_colname(alias).lower()
-        for col in df.columns:
-            if a_norm in normalize_colname(col).lower(): return col
-    return None
-
-def count_people_from_column(df: pd.DataFrame, col: Optional[str], label_name: str) -> pd.DataFrame:
-    if not col or col not in df.columns: return pd.DataFrame(columns=[label_name, "소속", "건수"])
-    records = []
-    for raw in df[col].fillna(""):
-        for token in split_people(raw):
-            records.append({label_name: token, "소속": person_group(token)})
-    if not records: return pd.DataFrame(columns=[label_name, "소속", "건수"])
-    return pd.DataFrame(records).groupby([label_name, "소속"], as_index=False).size().rename(columns={"size": "건수"}).sort_values(["건수", label_name], ascending=[False, True]).reset_index(drop=True)
+def parse_date(v):
+    if pd.isna(v) or v == "": return pd.NaT
+    try:
+        # 23.02.20 형식 처리
+        return pd.to_datetime(v, format="%y.%m.%d", errors="coerce")
+    except:
+        return pd.to_datetime(v, errors="coerce")
 
 # ---------------------------
-# Data Loading (Stable)
+# 3. Data Processing Engine
 # ---------------------------
 @st.cache_data(ttl=600)
-def load_google_sheet_values(sheet_name: str, worksheet_name: Optional[str] = None) -> List[List[str]]:
-    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]), scopes=scopes)
-    client = gspread.authorize(creds)
-    workbook = client.open(sheet_name)
-    worksheet = workbook.worksheet(worksheet_name) if worksheet_name else workbook.sheet1
-    return worksheet.get_all_values()
+def load_and_preprocess(values: List[List[str]]):
+    if not values or len(values) < 2: return pd.DataFrame(), {}
 
-@st.cache_data(ttl=600)
-def load_excel_values(file_bytes: bytes, sheet_name: Optional[str] = None) -> List[List[str]]:
-    xls = pd.ExcelFile(io.BytesIO(file_bytes))
-    target_sheet = sheet_name if sheet_name in xls.sheet_names else xls.sheet_names[0]
-    raw = pd.read_excel(xls, sheet_name=target_sheet, header=None)
-    return raw.fillna("").astype(object).values.tolist()
+    # 원본 데이터의 2번째 줄(인덱스 1)이 헤더임
+    header_row = 0
+    for i, row in enumerate(values[:5]):
+        if "브랜드" in str(row):
+            header_row = i
+            break
+            
+    df = pd.DataFrame(values[header_row+1:], columns=values[header_row])
+    df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
 
-# ---------------------------
-# Prepare (Fixed Column Mapping)
-# ---------------------------
-def prepare_dataframe(values: List[List[str]]):
-    df = values_to_dataframe(values)
-    if df.empty: return df, {}, pd.DataFrame(), pd.DataFrame()
+    # 컬럼 매핑
+    colmap = {}
+    for key, aliases in COLUMN_ALIASES.items():
+        for alias in aliases:
+            for col in df.columns:
+                if alias.lower() in col.lower():
+                    colmap[key] = col
+                    break
+            if key in colmap: break
 
-    colmap = {key: find_column(df, aliases) for key, aliases in COLUMN_ALIASES.items()}
+    # 데이터 타입 변환 및 정제
+    df["등록 완료일_dt"] = df[colmap["registration_done_date"]].apply(parse_date)
+    df["년도"] = df["등록 완료일_dt"].dt.year.astype("Int64")
     
-    # [중요] 연도 필터링 (2023-2026)
-    if colmap["registration_done_date"]:
-        df["date__registration_done"] = parse_date_series(df[colmap["registration_done_date"]])
-        df["년도"] = df["date__registration_done"].dt.year.astype("Int64")
-        df = df[(df["년도"] >= 2023) & (df["년도"] <= 2026)].copy()
-    else:
-        df["년도"] = pd.NA
+    # [핵심] 홍석님 요청: 2023-2026 연도 제한
+    df = df[(df["년도"] >= 2023) & (df["년도"] <= 2026)].copy()
 
-    # 파생 변수
+    # 불리언 변환
+    for k in ["listed", "request_done", "purchase_requested", "purchase_done", "registration_done_flag"]:
+        if colmap.get(k):
+            df[f"is_{k}"] = df[colmap[k]].apply(parse_bool)
+        else:
+            df[f"is_{k}"] = False
+
+    # 인력 그룹화
     req_col = colmap["requester"]
-    df["요청그룹"] = df[req_col].apply(requester_group) if req_col else "Famous"
-    df["대표요청자"] = df[req_col].apply(lambda x: split_people(x)[0] if split_people(x) else "미입력") if req_col else "미입력"
-    df["국내해외구분"] = df[colmap["country_type"]].apply(lambda x: "국내" if "국내" in normalize_text(x).lower() else "해외" if "해외" in normalize_text(x).lower() else "미입력") if colmap["country_type"] else "미입력"
-
-    for k, alias_k in [("bool__listed", "listed"), ("bool__request_done", "request_done"), 
-                       ("bool__purchase_requested", "purchase_requested"), ("bool__purchase_done", "purchase_done"), 
-                       ("bool__registration_done_flag", "registration_done_flag")]:
-        df[k] = df[colmap[alias_k]].map(parse_bool) if colmap[alias_k] else False
-
-    df["date__registration_request"] = parse_date_series(df[colmap["registration_request_date"]]) if colmap["registration_request_date"] else pd.NaT
-    lt = (df["date__registration_done"] - df["date__registration_request"]).dt.days
-    df["등록소요일"] = lt.where((lt >= 0) & (lt <= 365))
-
-    def stage_label(row):
-        if row["bool__registration_done_flag"]: return "등록 완료"
-        if row["bool__purchase_done"]: return "구매 완료"
-        if row["bool__purchase_requested"]: return "구매 요청"
-        if row["bool__request_done"]: return "등록 요청 완료"
-        if row["bool__listed"]: return "리스트업 완료"
-        return "미진행"
-    df["현재단계"] = df.apply(stage_label, axis=1)
-
-    # 지연/이슈 분석
-    text_cols = [colmap[c] for c in ["delay_reason", "issue_note", "issue_conclusion", "remark"] if colmap[c]]
-    combined_text = df[text_cols].astype(str).agg(' '.join, axis=1)
-    df["지연분류"] = combined_text.apply(lambda x: category_from_text(x, DELAY_MAPPING))
-    df["이슈분류"] = combined_text.apply(lambda x: category_from_text(x, ISSUE_MAPPING))
+    df["조직"] = df[req_col].apply(lambda x: person_group(split_people(x)[0] if split_people(x) else ""))
+    df["대표요청자"] = df[req_col].apply(lambda x: split_people(x)[0] if split_people(x) else "미입력")
     
-    df["등록제외"] = df.apply(lambda r: pd.isna(r["date__registration_done"]), axis=1)
+    # 리드타임 계산
+    req_date_col = colmap["registration_request_date"]
+    df["등록요청일_dt"] = df[req_date_col].apply(parse_date)
+    df["리드타임"] = (df["등록 완료일_dt"] - df["등록요청일_dt"]).dt.days
+    df["리드타임"] = df["리드타임"].apply(lambda x: x if 0 <= x <= 365 else np.nan)
 
-    # KPI용 메타데이터 (KeyError 방지를 위해 명확히 정의)
-    meta = {
-        "brand_col": colmap["brand"],
-        "requester_col": req_col,
-        "reviewer_col": colmap["reviewer"],
-        "remark_col": colmap["remark"]
-    }
-    
-    req_rank = count_people_from_column(df, req_col, "요청자")
-    rev_rank = count_people_from_column(df, colmap["reviewer"], "검토자")
+    # 현재 단계 정의 (최종 도달 지점 기준)
+    def get_stage(r):
+        if r["is_registration_done_flag"]: return "5.등록 완료"
+        if r["is_purchase_done"]: return "4.구매 완료"
+        if r["is_purchase_requested"]: return "3.구매 요청"
+        if r["is_request_done"]: return "2.검토/등록 요청"
+        if r["is_listed"]: return "1.리스트업 완료"
+        return "0.미진행"
+    df["현재단계"] = df.apply(get_stage, axis=1)
 
-    return df, meta, req_rank, rev_rank
-
-def safe_rate(num: int, den: int) -> float:
-    return round((num / den) * 100, 1) if den else 0.0
+    return df, colmap
 
 # ---------------------------
-# MAIN
+# 4. Main Application
 # ---------------------------
-st.title("KREAM Ops Dashboard")
+def main():
+    st.title("🏆 KREAM Ops Intelligence Dashboard")
+    st.markdown(f"**Data Range:** 2023 - 2026 | **Generated at:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-with st.sidebar:
-    st.header("설정")
-    source_type = st.radio("데이터 소스", ["Google Sheet", "Excel 업로드"])
-    if source_type == "Google Sheet":
-        s_name = st.text_input("구글 시트 이름", value="1P 상품등록 통합페이지")
-        w_name = st.text_input("워크시트 이름", value="Summary")
-        if st.button("데이터 불러오기", type="primary"):
-            st.session_state["raw_data"] = load_google_sheet_values(s_name, w_name)
-    else:
-        uploaded = st.file_uploader("파일 업로드", type=["xlsx"])
-        if uploaded and st.button("데이터 불러오기", type="primary"):
-            st.session_state["raw_data"] = load_excel_values(uploaded.getvalue())
+    # --- Sidebar Filters ---
+    with st.sidebar:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/d/de/Google_Sheets_logo_%282014-2020%29.svg", width=50)
+        st.header("Control Panel")
+        
+        source = st.radio("데이터 소스", ["Google Sheet", "Excel 업로드"])
+        raw_values = None
+        
+        if source == "Google Sheet":
+            sheet_name = st.text_input("구글 시트 이름", value="1P 상품등록 통합페이지")
+            if st.button("데이터 동기화", type="primary"):
+                try:
+                    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                    creds = Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]), scopes=scopes)
+                    client = gspread.authorize(creds)
+                    worksheet = client.open(sheet_name).worksheet("Summary")
+                    raw_values = worksheet.get_all_values()
+                    st.session_state["raw"] = raw_values
+                except Exception as e: st.error(f"연결 실패: {e}")
+        else:
+            uploaded = st.file_uploader("XLSX 파일 업로드", type="xlsx")
+            if uploaded:
+                raw_values = pd.read_excel(uploaded, sheet_name=None)
+                # 첫 번째 시트 사용
+                sheet1 = list(raw_values.values())[0]
+                raw_values = [sheet1.columns.tolist()] + sheet1.values.tolist()
+                st.session_state["raw"] = raw_values
 
-if "raw_data" in st.session_state:
-    df_raw, meta, req_total, rev_total = prepare_dataframe(st.session_state["raw_data"])
+    if "raw" not in st.session_state:
+        st.info("💡 사이드바에서 데이터를 먼저 불러와주세요.")
+        return
+
+    df_base, colmap = load_and_preprocess(st.session_state["raw"])
     
-    if not df_raw.empty:
-        # [수정 완료] meta 딕셔너리에서 안전하게 컬럼명 추출
-        brand_col = meta["brand_col"]
-        requester_col = meta["requester_col"]
-        reviewer_col = meta["reviewer_col"]
+    if df_base.empty:
+        st.warning("유효한 데이터가 없습니다 (2023-2026 범위 확인).")
+        return
 
-        with st.sidebar:
-            st.markdown("### 필터")
-            sel_years = st.multiselect("년도", options=sorted(df_raw["년도"].dropna().unique().tolist()), default=sorted(df_raw["년도"].dropna().unique().tolist()))
-            sel_groups = st.multiselect("조직 (요청그룹)", options=sorted(df_raw["요청그룹"].unique().tolist()), default=sorted(df_raw["요청그룹"].unique().tolist()))
-            sel_country = st.multiselect("국내/해외", options=sorted(df_raw["국내해외구분"].unique().tolist()), default=sorted(df_raw["국내해외구분"].unique().tolist()))
-            sel_stages = st.multiselect("현재 단계", options=sorted(df_raw["현재단계"].unique().tolist()), default=sorted(df_raw["현재단계"].unique().tolist()))
-            
-            req_list = sorted(df_raw[requester_col].dropna().unique().tolist()) if requester_col else []
-            sel_reqs = st.multiselect("요청자", options=req_list, default=req_list)
-            
-            rev_list = sorted(df_raw[reviewer_col].dropna().unique().tolist()) if reviewer_col else []
-            sel_revs = st.multiselect("검토자", options=rev_list, default=rev_list)
-            
-            keyword = st.text_input("브랜드/비고 검색")
-            include_ex = st.checkbox("등록 제외건 포함", value=False)
+    # --- 전문가용 세부 필터 (사이드바 하단) ---
+    with st.sidebar:
+        st.markdown("---")
+        st.subheader("Filters")
+        f_org = st.multiselect("조직", options=df_base["조직"].unique(), default=df_base["조직"].unique())
+        f_country = st.multiselect("국내/해외", options=df_base["국내해외구분"].unique(), default=df_base["국내해외구분"].unique())
+        f_stage = st.multiselect("현재 단계", options=sorted(df_base["현재단계"].unique()), default=df_base["현재단계"].unique())
+        f_year = st.multiselect("년도", options=sorted(df_base["년도"].dropna().unique().tolist()), default=sorted(df_base["년도"].dropna().unique().tolist()))
+        
+        keyword = st.text_input("브랜드/비고 검색")
+        include_ex = st.checkbox("등록 완료일 없는 데이터 포함", value=True)
 
-        # 필터링 엔진
-        f_df = df_raw[df_raw["년도"].isin(sel_years)].copy()
-        f_df = f_df[f_df["요청그룹"].isin(sel_groups)]
-        f_df = f_df[f_df["국내해외구분"].isin(sel_country)]
-        f_df = f_df[f_df["현재단계"].isin(sel_stages)]
-        if requester_col: f_df = f_df[f_df[requester_col].isin(sel_reqs)]
-        if reviewer_col: f_df = f_df[f_df[reviewer_col].isin(sel_revs)]
-        if not include_ex: f_df = f_df[~f_df["등록제외"]]
-        if keyword:
-            sc = [c for c in [brand_col, meta["remark_col"]] if c]
-            f_df = f_df[f_df[sc].astype(str).apply(lambda x: x.str.contains(keyword, case=False)).any(axis=1)]
+    # 필터링 적용
+    df = df_base[
+        (df_base["조직"].isin(f_org)) &
+        (df_base["국내해외구분"].isin(f_country)) &
+        (df_base["현재단계"].isin(f_stage)) &
+        (df_base["년도"].isin(f_year))
+    ].copy()
+    
+    if not include_ex: df = df[df["등록 완료일_dt"].notna()]
+    if keyword:
+        df = df[df[colmap["brand"]].astype(str).str.contains(keyword, case=False) | 
+                df[colmap["remark"]].astype(str).str.contains(keyword, case=False)]
 
-        # KPI 출력
-        done = f_df["bool__registration_done_flag"].sum()
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("총 브랜드", f"{len(f_df)}건")
-        m2.metric("등록 완료", f"{done}건")
-        m3.metric("성공률", f"{safe_rate(done, len(f_df))}%")
-        m4.metric("평균 리드타임", f"{round(f_df['등록소요일'].mean(), 1) if not f_df['등록소요일'].dropna().empty else '-'}일")
+    # --- Main Dashboard Tabs ---
+    tab1, tab2, tab3 = st.tabs(["📊 운영 요약 (Executive)", "👥 인력/성과 (Performance)", "📑 상세 데이터 (Raw)"])
+
+    with tab1:
+        # 1. 상단 KPI Metrics
+        kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+        total_brands = len(df)
+        reg_done = df["is_registration_done_flag"].sum()
+        reg_rate = safe_rate(reg_done, total_brands)
+        avg_lt = df["리드타임"].mean()
+        
+        kpi1.metric("총 브랜드 수", f"{total_brands}건")
+        kpi2.metric("등록 완료 수", f"{reg_done}건")
+        kpi3.metric("등록 성공률", f"{reg_rate}%")
+        kpi4.metric("평균 리드타임", f"{avg_lt:.1f}일" if not pd.isna(avg_lt) else "-")
+        kpi5.metric("노출 전환율", f"{safe_rate(df['is_purchase_done'].sum(), total_brands)}%")
 
         st.markdown("---")
-        st.subheader("📋 상세 트래킹 리스트")
-        st.dataframe(f_df.sort_values("등록소요일", ascending=False), use_container_width=True, hide_index=True)
+        
+        # 2. 운영 차트 섹션
+        c1, c2 = st.columns([6, 4])
+        with c1:
+            st.markdown("#### 📅 월간 등록 완료 추이")
+            trend = df.dropna(subset=["년월"]).groupby("년월").size().reset_index(name="건수")
+            fig_trend = px.line(trend, x="년월", y="건수", markers=True, template="plotly_white", color_discrete_sequence=['#007BFF'])
+            st.plotly_chart(fig_trend, use_container_width=True)
+            
+        with c2:
+            st.markdown("#### 🎯 공정별 퍼널 (Funnel)")
+            funnel_data = {
+                "단계": ["리스트업", "등록요청", "구매완료", "등록완료"],
+                "건수": [df["is_listed"].sum(), df["is_request_done"].sum(), df["is_purchase_done"].sum(), df["is_registration_done_flag"].sum()]
+            }
+            fig_funnel = px.funnel(funnel_data, x='건수', y='단계', color_discrete_sequence=['#6C757D'])
+            st.plotly_chart(fig_funnel, use_container_width=True)
+
+        st.markdown("---")
+        c3, c4 = st.columns(2)
+        with c3:
+            st.markdown("#### 🌏 국내 vs 해외 비중")
+            fig_pie = px.pie(df, names="국내해외구분", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_pie, use_container_width=True)
+        with c4:
+            st.markdown("#### ⏱️ 리드타임 분포")
+            fig_hist = px.histogram(df, x="리드타임", nbins=20, template="plotly_white", color_discrete_sequence=['#FFC107'])
+            st.plotly_chart(fig_hist, use_container_width=True)
+
+    with tab2:
+        st.markdown("#### 🏆 인력 생산성 및 성과 지표")
+        p1, p2 = st.columns(2)
+        
+        with p1:
+            st.markdown("##### 요청자별 처리 건수 (Top 15)")
+            req_rank = df.groupby(["대표요청자", "조직"]).size().reset_index(name="건수").sort_values("건수", ascending=False)
+            fig_req = px.bar(req_rank.head(15), x="건수", y="대표요청자", color="조직", orientation='h', template="plotly_white")
+            st.plotly_chart(fig_req, use_container_width=True)
+            
+        with p2:
+            st.markdown("##### 검토자별 처리 건수")
+            rev_col = colmap["reviewer"]
+            rev_rank = df.groupby(rev_col).size().reset_index(name="건수").sort_values("건수", ascending=False)
+            fig_rev = px.bar(rev_rank.head(15), x="건수", y=rev_col, template="plotly_white", color_discrete_sequence=['#28A745'])
+            st.plotly_chart(fig_rev, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("##### 🧪 조직별 리드타임 및 효율 비교")
+        org_stats = df.groupby("조직").agg(건수=("조직", "count"), 평균리드타임=("리드타임", "mean"), 등록완료=("is_registration_done_flag", "sum")).reset_index()
+        org_stats["성공률"] = (org_stats["등록완료"] / org_stats["건수"] * 100).round(1)
+        st.table(org_stats.style.background_gradient(subset=["성공률"], cmap="Blues"))
+
+    with tab3:
+        st.markdown("#### 📑 필터링된 데이터 상세 내역")
+        # 보기 편하게 컬럼 순서 조정
+        cols_to_show = [colmap["brand"], "대표요청자", "조직", "현재단계", "등록 완료일_dt", "리드타임", "국내해외구분", colmap["remark"]]
+        st.dataframe(df[cols_to_show].sort_values("등록 완료일_dt", ascending=False), use_container_width=True, hide_index=True)
+        
+        # 엑셀 다운로드 기능
+        csv = df.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="📥 현재 필터 결과 엑셀(CSV) 다운로드",
+            data=csv,
+            file_name=f"KREAM_Ops_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+        )
+
+if __name__ == "__main__":
+    main()
