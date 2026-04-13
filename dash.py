@@ -305,7 +305,14 @@ def send_to_slack(webhook_url: str, text: str):
 # ---------------------------
 @st.cache_data(ttl=600)
 def load_google_sheet_values(sheet_name: str, worksheet_name: Optional[str] = None) -> List[List[str]]:
-    client = gspread.service_account(filename="credentials.json")
+    import streamlit as st
+    from google.oauth2.service_account import Credentials
+    import gspread
+
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"]
+    )
+   client = gspread.authorize(creds) 
     workbook = client.open(sheet_name)
     worksheet = workbook.worksheet(worksheet_name) if worksheet_name else workbook.sheet1
     return worksheet.get_all_values()
