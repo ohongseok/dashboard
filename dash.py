@@ -69,7 +69,7 @@ html, body, [class*="css"] {
 # ─────────────────────────────────────────────
 SPREADSHEET_ID  = "1e-uxQVNCCF3qS8e3a_S8sZbCx5qj343ycsEfkIF2POA"
 SHEET_NAME      = "Summary"
-FIXED_REVIEWERS = ["오홍석", "유지윤", "장근수", "백건우"]
+FIXED_REVIEWERS = ["오홍석", "유지윤", "장근수", "백건우", "전현희"]
 TRUE_VALUES     = {"true", "1", "y", "yes", "완료", "o", "v", "✓", "check", "checked"}
  
 STAGE_COLORS = {
