@@ -7,6 +7,22 @@ import pandas as pd
 import requests
 import streamlit as st
 from google.oauth2.service_account import Credentials
+
+@st.cache_data(ttl=600)
+def load_google_sheet_values(sheet_name: str, worksheet_name: Optional[str] = None) -> List[List[str]]:
+    creds = Credentials.from_service_account_info(
+        dict(st.secrets["gcp_service_account"]),
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+    )
+    client = gspread.authorize(creds)
+
+    workbook = client.open(sheet_name)
+    worksheet = workbook.worksheet(worksheet_name) if worksheet_name else workbook.sheet1
+
+    return worksheet.get_all_values()
 ILLEGAL_EXCEL_CHARS_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
 HEADER_KEYWORDS = ["요청자", "검토자", "브랜드", "등록 완료일", "국내/해외"]
 
@@ -303,7 +319,7 @@ def load_google_sheet_values(sheet_name: str, worksheet_name: Optional[str] = No
         dict(st.secrets["gcp_service_account"])
     )
     client = gspread.authorize(creds)
-    workbook = client.open(sheet_name)
+    workbook = client.open("1P 상품등록 통합페이지")
     worksheet = workbook.worksheet(worksheet_name) if worksheet_name else workbook.sheet1
     return worksheet.get_all_values()
 
