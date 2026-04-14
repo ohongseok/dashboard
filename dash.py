@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P OPS DASHBOARD",
+    page_title="1P Ops Intelligence",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -557,98 +557,6 @@ li[role="option"]:hover {
     display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-right:6px;
 }
 
-
-
-/* ━━━ FONT / ICON / SIDEBAR RENDER PATCH ━━━ */
-.material-symbols-outlined,
-.material-symbols-rounded,
-.material-icons,
-[class*="material-symbols"],
-[data-testid="stSidebarNav"] span[data-testid="stIconMaterial"],
-button span[data-testid="stIconMaterial"],
-[data-testid="collapsedControl"] span,
-[data-testid="stSidebarCollapseButton"] span {
-    font-family: "Material Symbols Outlined", "Material Symbols Rounded", "Material Icons" !important;
-    font-weight: normal !important;
-    font-style: normal !important;
-    font-size: 20px !important;
-    line-height: 1 !important;
-    letter-spacing: normal !important;
-    text-transform: none !important;
-    display: inline-block !important;
-    white-space: nowrap !important;
-    word-wrap: normal !important;
-    direction: ltr !important;
-    font-feature-settings: "liga" !important;
-    -webkit-font-feature-settings: "liga" !important;
-    -webkit-font-smoothing: antialiased !important;
-}
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapseButton"] {
-    font-family: inherit !important;
-}
-/* hide raw ligature fallback strings if browser renders them as text */
-[data-testid="collapsedControl"] span:not([data-testid="stIconMaterial"]),
-[data-testid="stSidebarCollapseButton"] span:not([data-testid="stIconMaterial"]) {
-    font-family: "Material Symbols Outlined", "Material Symbols Rounded", "Material Icons" !important;
-}
-/* global font override except icon ligatures */
-svg, img { overflow: visible !important; }
-[data-testid="stSidebar"] [data-baseweb="tag"] {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 6px 10px !important;
-    overflow: visible !important;
-}
-[data-testid="stSidebar"] [data-baseweb="tag"] span,
-[data-testid="stSidebar"] [data-baseweb="tag"] div {
-    overflow: visible !important;
-    white-space: nowrap !important;
-    text-indent: 0 !important;
-    letter-spacing: 0 !important;
-}
-[data-testid="stSidebar"] [data-baseweb="select"] div,
-[data-testid="stSidebar"] [data-baseweb="select"] span {
-    overflow: visible !important;
-    white-space: nowrap !important;
-    text-indent: 0 !important;
-    letter-spacing: 0 !important;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {
-    font-size: 0 !important;
-    color: transparent !important;
-    min-height: 40px !important;
-    border-radius: 10px !important;
-    border: 1px solid #4b4b4b !important;
-    background: #262626 !important;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button::after {
-    content: "파일 선택";
-    font-size: 13px !important;
-    font-weight: 800 !important;
-    color: #ffffff !important;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] {
-    display:flex !important;
-    flex-direction:column !important;
-    align-items:flex-start !important;
-    gap:6px !important;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] svg {
-    display:none !important;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] small {
-    font-size: 11px !important;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] span,
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] div,
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] p {
-    font-size: 12px !important;
-    letter-spacing: 0 !important;
-    white-space: normal !important;
-}
-
 </style>
 """,
     unsafe_allow_html=True,
@@ -845,8 +753,6 @@ def _build(values: list) -> pd.DataFrame:
     today = pd.Timestamp.today().normalize()
     df["진행경과일"] = (today - df["등록요청일_dt"]).dt.days
     df["진행경과일"] = df["진행경과일"].where(df["진행경과일"] >= 0)
-    # 완료 건은 오늘 기준이 아니라 실제 리드타임 기준으로 재계산
-    df.loc[df["I_reg_done"] & df["리드타임"].notna(), "진행경과일"] = df.loc[df["I_reg_done"] & df["리드타임"].notna(), "리드타임"]
 
     df["D_listed"] = df[d_col].apply(pb) if d_col else False
     df["E_req_done"] = df[e_col].apply(pb)
@@ -1220,7 +1126,7 @@ def sidebar(df: pd.DataFrame):
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-        if st.button("↻  구글 시트 동기화", use_container_width=True, type="primary"):
+        if st.button("↻  구글 시트 동기화", key="sync_btn_main", use_container_width=True, type="primary"):
             with st.spinner("연결 중..."):
                 vals, err = load_from_gsheet()
             if err:
@@ -1863,11 +1769,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>검토자별 성과 KPI · Performance Analytics</div>", unsafe_allow_html=True)
 
-    reviewer_scope = scope_wip.copy()
-    reviewer_scope = reviewer_scope[reviewer_scope["검토자_정제"].notna()]
-
     reviewer_kpi = (
-        reviewer_scope.groupby("검토자_정제")
+        scope_wip.groupby("검토자_정제")
         .agg(
             담당건수=("브랜드(영문)", "count"),
             검토진행중=("wip_검토", "sum"),
@@ -1875,13 +1778,12 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             등록완료=("I_reg_done", "sum"),
             등록불가=("is_불가", "sum"),
             SLA위반=("SLA상태", lambda x: (x == "위반").sum()),
-            평균진행경과일=("진행경과일", lambda s: s.dropna().mean()),
-            평균리드타임=("리드타임", lambda s: s.dropna().mean()),
+            평균진행경과일=("진행경과일", "mean"),
+            평균리드타임=("리드타임", "mean"),
         )
         .reset_index()
         .sort_values(["담당건수", "등록완료"], ascending=[False, False])
     )
-    reviewer_kpi = reviewer_kpi.rename(columns={"검토자_정제": "검토자"})
     reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / reviewer_kpi["담당건수"] * 100).round(1)
     st.dataframe(
         reviewer_kpi.style.format({
@@ -1895,46 +1797,45 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
 
     # ══════════════════════════════════════════════
-    # SECTION 1-3 — SLA (HIDDEN BY REQUEST)
+    # SECTION 1-3 — SLA
     # ══════════════════════════════════════════════
-    if False:
-            st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
-            sla_left, sla_right = st.columns([4, 6])
-            with sla_left:
-                st.markdown(
-                    """
-                    <div class='info-card'>
-                      <div class='info-card-title'>SLA 정의</div>
-                      <div class='info-card-sub'>
-                        <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
-                        <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
-                        <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
-                        <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
-                      </div>
-                      <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            with sla_right:
-                sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
-                if not sla_stat.empty:
-                    sla_stat.columns = ["상태", "건수"]
-                    fig = px.bar(
-                        sla_stat,
-                        x="상태",
-                        y="건수",
-                        color="상태",
-                        color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
-                        title="<b>SLA 상태 분포</b>",
-                        text="건수",
-                    )
-                    fig.update_layout(**CHART_TPL, height=260, showlegend=False)
-                    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
+    sla_left, sla_right = st.columns([4, 6])
+    with sla_left:
+        st.markdown(
+            """
+            <div class='info-card'>
+              <div class='info-card-title'>SLA 정의</div>
+              <div class='info-card-sub'>
+                <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
+                <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
+                <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
+                <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
+              </div>
+              <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with sla_right:
+        sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
+        if not sla_stat.empty:
+            sla_stat.columns = ["상태", "건수"]
+            fig = px.bar(
+                sla_stat,
+                x="상태",
+                y="건수",
+                color="상태",
+                color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
+                title="<b>SLA 상태 분포</b>",
+                text="건수",
+            )
+            fig.update_layout(**CHART_TPL, height=260, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
 
-            sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
-            sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
-            st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
+    sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
+    sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
+    st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
 
     # ══════════════════════════════════════════════
     
@@ -2134,6 +2035,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-if __name__ == "__main__":
-    main()
