@@ -156,12 +156,6 @@ html, body, [class*="css"], .stMarkdown, .stText {
     border-radius:14px; padding:24px;
 }
 
-/* ── 필터 칩 라벨 ── */
-.filter-label {
-    font-size:10px; font-weight:800; letter-spacing:1px;
-    text-transform:uppercase; color:#555; margin-bottom:4px;
-}
-
 /* ── 구분선 ── */
 .k-div { border:none; border-top:1px solid #e8e8e8; margin:28px 0; }
 
@@ -298,19 +292,19 @@ def normalize_requester(v) -> str:
 # 4. PREPROCESSING ENGINE
 # ─────────────────────────────────────────────
 def _build_df(values: list) -> pd.DataFrame:
-    # 헤더 행 고정 (3행 = Index 2)
+    # 헤더 행 고정 (사본 시트 기준 3행 = Index 2)
     header_idx = 2
     header = [str(c).strip() for c in values[header_idx]]
     df_raw = pd.DataFrame(values[header_idx + 1:], columns=header)
 
-    # 유효 데이터 필터링 (브랜드명이 있는 경우만)
+    # 유효 데이터 필터링 (브랜드명이 실질적으로 있는 경우)
     df = df_raw[df_raw["브랜드(영문)"].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])].copy()
 
     # 날짜 처리
     df["등록완료일_dt"] = df["등록 완료일"].apply(parse_korean_date)
     df["등록요청일_dt"] = df["등록 요청일"].apply(parse_korean_date)
 
-    # TypeError 방지: 년도와 월을 float64로 저장
+    # TypeError 방지: 수치형 연산이 필요한 연도/월 등을 float64로 명시적 변환
     df["년도"]   = df["등록완료일_dt"].dt.year.astype("float64")
     df["월"]     = df["등록완료일_dt"].dt.month.astype("float64")
     df["년월"]   = df["등록완료일_dt"].dt.strftime("%Y-%m")
@@ -322,31 +316,43 @@ def _build_df(values: list) -> pd.DataFrame:
     df["분기"]    = "Q" + df["등록완료일_dt"].dt.quarter.astype(str)
     df["년분기"]  = df["년도"].astype(str) + "-" + df["분기"]
 
-    # 리드타임
+    # 리드타임 (오류 방지를 위해 float 변환 후 계산)
     df["리드타임"] = (df["등록완료일_dt"] - df["등록요청일_dt"]).dt.days
     df["리드타임"] = df["리드타임"].where((df["리드타임"] >= 0) & (df["리드타임"] <= 180))
 
-    # 불리언 상태 매핑
+    # 불리언 상태 매핑 (D, E, F, G, I열 대응)
     BOOL_MAP = [
-        ("리스트업 완료",              "bool_listed"),
-        ("검토 및 등록 요청 완료",      "bool_request_done"),
-        ("상품 구매 요청",              "bool_purchase_req"),
-        ("상품 구매 완료",              "bool_purchase_done"),
-        ("등록 완료 (앱 노출 시 체크)", "bool_reg_done"),
+        ("리스트업 완료",              "bool_listed"),         # D열
+        ("검토 및 등록 요청 완료",      "bool_request_done"),   # E열
+        ("상품 구매 요청",              "bool_purchase_req"),   # F열
+        ("상품 구매 완료",              "bool_purchase_done"),  # G열
+        ("등록 완료 (앱 노출 시 체크)", "bool_reg_done"),       # I열
     ]
     for src, dst in BOOL_MAP:
-        df[dst] = df[src].apply(parse_bool) if src in df.columns else False
+        if src in df.columns:
+            df[dst] = df[src].apply(parse_bool)
+        else:
+            df[dst] = False
 
-    # ★ WIP 로직 정확도 보정 (홍석님 요청 사항 반영)
-    df["bool_h_filled"] = df["등록 요청일"].apply(has_date_value)
+    # ★ WIP 로직 정교화 (사본 데이터의 체크박스 및 날짜 필드 기준)
+    df["bool_h_filled"] = df["등록 요청일"].apply(has_date_value) # H열 기입 여부
     
-    # 등록 진행중: E열(검토요청) 완료 & H열(등록요청일) 기입 & I열(등록완료) 미체크
-    df["is_reg_wip"] = (df["bool_request_done"] & df["bool_h_filled"] & (~df["bool_reg_done"]))
+    # 1. 등록 진행중 (Registration WIP): 
+    #   E열(검토 및 등록 요청 완료)=TRUE AND H열(등록 요청일) 기입됨 AND I열(등록 완료)=FALSE
+    df["is_reg_wip"] = (
+        df["bool_request_done"] & 
+        df["bool_h_filled"] & 
+        (~df["bool_reg_done"])
+    )
     
-    # 검토 진행중: D열(리스트업) 완료 & E열(검토요청) 미체크
-    df["is_rev_wip"] = (df["bool_listed"] & (~df["bool_request_done"]))
+    # 2. 검토 진행중 (Review WIP): 
+    #   D열(리스트업 완료)=TRUE AND E열(검토 및 등록 요청 완료)=FALSE
+    df["is_rev_wip"] = (
+        df["bool_listed"] & 
+        (~df["bool_request_done"])
+    )
 
-    # 텍스트 및 카테고리 정제
+    # 카테고리 및 텍스트 정제
     df["국내해외"]    = df["국내/해외"].apply(lambda x: "국내" if "국내" in str(x) else ("해외" if "해외" in str(x) else "미입력"))
     df["요청자_정제"] = df["요청자"].apply(normalize_requester)
     df["검토자_정제"] = df["검토자"].apply(lambda x: str(x).strip() if pd.notna(x) and str(x).strip() != "" else "미입력")
@@ -712,7 +718,7 @@ def render_dashboard(df_filtered: pd.DataFrame, source: str):
             ).reset_index()
             ts_df.columns = ["기간", "등록완료", "전체건수", "평균리드타임"]
             
-            # TypeError 해결: float64 변환 후 나눗셈
+            # TypeError 해결 포인트: float 변환 후 연산
             ts_df["등록률"] = (ts_df["등록완료"].astype(float) / ts_df["전체건수"].astype(float) * 100).round(1)
 
             fig = make_subplots(rows=2, cols=1,
@@ -798,6 +804,7 @@ def render_dashboard(df_filtered: pd.DataFrame, source: str):
                 평균리드타임=("리드타임", "mean"),
                 지연건수=("지연여부", lambda x: (x == "지연").sum()),
             ).reset_index()
+            # TypeError 해결 포인트
             pr["등록률"] = (pr["등록완료"].astype(float) / pr["담당건수"].astype(float) * 100).round(1)
             pr["지연률"] = (pr["지연건수"].astype(float) / pr["담당건수"].astype(float) * 100).round(1)
             pr = pr.sort_values("담당건수", ascending=False)
@@ -831,7 +838,7 @@ def render_dashboard(df_filtered: pd.DataFrame, source: str):
         지연건수=("지연여부", lambda x: (x == "지연").sum()),
     ).reset_index().dropna(subset=["년도"])
     
-    # TypeError 해결: float64 변환
+    # TypeError 해결 포인트
     yoy["등록률"] = (yoy["등록완료"].astype(float) / yoy["전체건수"].astype(float) * 100).round(1)
     yoy["지연률"] = (yoy["지연건수"].astype(float) / yoy["전체건수"].astype(float) * 100).round(1)
     yoy["년도"]   = yoy["년도"].astype(int).astype(str)
