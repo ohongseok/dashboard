@@ -49,14 +49,6 @@ html, body, .main, .stApp, [data-testid="stAppViewContainer"] {
 h1, h2, h3, h4, h5, h6, p, span, label, div {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
-/* 아이콘 폰트는 예외 처리 */
-span.material-symbols-outlined,
-span.material-icons,
-i.material-icons,
-[data-testid="stExpander"] summary svg,
-[data-testid="stExpander"] details summary svg {
-    font-family: 'Material Symbols Outlined', 'Material Icons' !important;
-}
 
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stMarkdownContainer"] li,
@@ -72,14 +64,6 @@ i.material-icons,
 }
 [data-testid="stSidebar"] > div {
     padding-top: 0 !important;
-    padding-left: 10px !important;
-}
-[data-testid="stSidebar"] .stMultiSelect,
-[data-testid="stSidebar"] .stSelectbox,
-[data-testid="stSidebar"] .stTextInput,
-[data-testid="stSidebar"] .stFileUploader,
-[data-testid="stSidebar"] label {
-    margin-left: 8px !important;
 }
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p,
@@ -573,6 +557,23 @@ li[role="option"]:hover {
     display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-right:6px;
 }
 
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"],
+[data-testid="stSidebar"] .stMultiSelect,
+[data-testid="stSidebar"] .stSelectbox,
+[data-testid="stSidebar"] .stTextInput,
+[data-testid="stSidebar"] .stFileUploader {
+    margin-left: 8px !important;
+    width: calc(100% - 8px) !important;
+}
+.material-symbols-outlined, [class*="material-symbols"] {
+    font-family: "Material Symbols Outlined" !important;
+    font-style: normal !important;
+    font-weight: normal !important;
+}
+details summary span[data-testid="stExpanderToggleIcon"] {
+    font-family: inherit !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -679,6 +680,32 @@ def is_filled_text(v) -> bool:
     return s not in ["", "nan", "NaT", "-", "#REF!", "None", "NaN"]
 
 
+def parse_week_token(v):
+    if pd.isna(v):
+        return pd.NaT
+    s = str(v).strip().upper()
+    if s in ["", "-", "#REF!", "NAN", "NAT", "NONE"]:
+        return pd.NaT
+    m = re.match(r"^(\d{2,4})W(\d{1,2})$", s)
+    if not m:
+        return pd.NaT
+    year = int(m.group(1))
+    week = int(m.group(2))
+    if year < 100:
+        year += 2000
+    try:
+        return pd.to_datetime(f"{year}-W{week:02d}-1", format="%G-W%V-%u")
+    except Exception:
+        return pd.NaT
+
+
+def first_non_na(*vals):
+    for v in vals:
+        if pd.notna(v):
+            return v
+    return pd.NaT
+
+
 def safe_rate(n, d) -> float:
     return round(n / d * 100, 1) if d and d > 0 else 0.0
 
@@ -742,20 +769,27 @@ def _build(values: list) -> pd.DataFrame:
 
     reg_done_date_col = first_valid_column(raw, ["등록 완료일"])
     reg_req_date_col = first_valid_column(raw, ["등록 요청일"])
+    reg_week_col = first_valid_column(raw, ["등록 주차"])
     delay_reason_col = first_valid_column(raw, ["지연 사유"])
     country_col = first_valid_column(raw, ["국내/해외"])
     d_col = first_valid_column(raw, ["리스트업 완료"])
     f_col = first_valid_column(raw, ["상품 구매 요청"])
     g_col = first_valid_column(raw, ["상품 구매 완료"])
 
-    base_mask = raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
-    if reg_done_date_col and reg_done_date_col in raw.columns:
-        base_mask = base_mask & (raw[reg_done_date_col].astype(str).str.strip() != "#REF!")
-    df = raw[base_mask].copy().reset_index(drop=True)
+    brand_mask = raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
+    h_exists = raw[reg_req_date_col].apply(is_filled_text) if reg_req_date_col else pd.Series(False, index=raw.index)
+    j_exists = raw[reg_done_date_col].apply(is_filled_text) if reg_done_date_col else pd.Series(False, index=raw.index)
+    k_exists = raw[reg_week_col].apply(is_filled_text) if reg_week_col else pd.Series(False, index=raw.index)
+    date_mask = h_exists | j_exists | k_exists
+    df = raw[brand_mask & date_mask].copy().reset_index(drop=True)
 
     df["등록완료일_dt"] = df[reg_done_date_col].apply(parse_date) if reg_done_date_col else pd.NaT
     df["등록요청일_dt"] = df[reg_req_date_col].apply(parse_date) if reg_req_date_col else pd.NaT
-    df["분석기준일_dt"] = df["등록요청일_dt"].where(df["등록요청일_dt"].notna(), df["등록완료일_dt"])
+    df["등록주차_dt"] = df[reg_week_col].apply(parse_week_token) if reg_week_col else pd.NaT
+    df["분석기준일_dt"] = df.apply(
+        lambda r: first_non_na(r.get("등록요청일_dt"), r.get("등록완료일_dt"), r.get("등록주차_dt")),
+        axis=1,
+    )
 
     iso = df["분석기준일_dt"].dt.isocalendar()
     df["년도"] = df["분석기준일_dt"].dt.year.astype("Int64")
@@ -795,7 +829,7 @@ def _build(values: list) -> pd.DataFrame:
     df["지연분류"] = df[delay_reason_col].apply(classify_delay) if delay_reason_col else "없음"
 
     combined_not_allowed = df["브랜드별검토사항결론_txt"].fillna("") + " " + df["비고_txt"].fillna("")
-    df["is_불가"] = combined_not_allowed.str.contains(r"등록\s*불가", na=False, regex=True)
+    df["is_불가"] = combined_not_allowed.str.contains(r"등록\s*불가", na=False)
 
     def blocked_reason(row):
         parts = []
@@ -1252,7 +1286,7 @@ def landing():
 # ─────────────────────────────────────────────────────────────
 def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     df_kpi = df[df["년도"].isin([2024, 2025, 2026])].copy()
-    df_24 = df[df["년도"].isin([2024, 2025, 2026])].copy()
+    df_24 = df[df["분석기준일_dt"] >= "2024-01-01"].copy()
     scope_wip = df_scope_wip.copy()
     scope_wip = scope_wip[scope_wip["년도"].fillna(2024).astype("Int64") >= 2024]
 
@@ -1276,13 +1310,12 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>종합 운영 지표</div>", unsafe_allow_html=True)
 
-    kpi_scope = df[df["년도"].isin([2024, 2025, 2026])].copy()
-    kpi_scope = kpi_scope[kpi_scope["B_exists"] & (kpi_scope["검토자_정제"] != "미입력")]
-    total = len(kpi_scope)
-    done = int((kpi_scope["I_reg_done"] & ~kpi_scope["is_불가"]).sum())
-    lt_avg = kpi_scope["리드타임"].mean()
-    lt_med = kpi_scope["리드타임"].median()
-    delayed = int((kpi_scope["지연여부"] == "지연").sum())
+    eligible_kpi = df_kpi[(df_kpi["B_exists"]) & (df_kpi["검토자_정제"] != "미입력")].copy()
+    total = len(eligible_kpi)
+    done = int(((eligible_kpi["I_reg_done"]) & (~eligible_kpi["is_불가"])).sum())
+    lt_avg = df_kpi["리드타임"].mean()
+    lt_med = df_kpi["리드타임"].median()
+    delayed = int((df_kpi["지연여부"] == "지연").sum())
 
     wip_reg = scope_wip[scope_wip["wip_등록"]].copy()
     wip_rev = scope_wip[scope_wip["wip_검토"]].copy()
@@ -1394,10 +1427,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             go.Funnel(
                 y=["리스트업 완료", "검토/등록 요청", "구매 완료", "최종 등록"],
                 x=[
-                    int((kpi_scope["D_listed"] & ~kpi_scope["is_불가"]).sum()),
-                    int((kpi_scope["E_req_done"] & ~kpi_scope["is_불가"]).sum()),
-                    int((kpi_scope["G_purchase_done"] & ~kpi_scope["is_불가"]).sum()),
-                    int((kpi_scope["I_reg_done"] & ~kpi_scope["is_불가"]).sum()),
+                    int((eligible_kpi["D_listed"] & (~eligible_kpi["is_불가"])).sum()),
+                    int((eligible_kpi["E_req_done"] & (~eligible_kpi["is_불가"])).sum()),
+                    int((eligible_kpi["G_purchase_done"] & (~eligible_kpi["is_불가"])).sum()),
+                    int((eligible_kpi["I_reg_done"] & (~eligible_kpi["is_불가"])).sum()),
                 ],
                 textinfo="value+percent previous",
                 textfont=dict(size=13, color="#ffffff"),
@@ -1409,7 +1442,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         st.plotly_chart(fig, use_container_width=True)
 
     with p2:
-        sc = kpi_scope["현재단계"].value_counts().reset_index()
+        sc = eligible_kpi["현재단계"].value_counts().reset_index()
         sc.columns = ["단계", "건수"]
         fig = go.Figure(
             go.Pie(
@@ -1434,7 +1467,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 
     with p3:
         cross = (
-            kpi_scope[kpi_scope["국내해외"].isin(["국내", "해외"])]
+            eligible_kpi[eligible_kpi["국내해외"].isin(["국내", "해외"])]
             .groupby(["국내해외", "현재단계"])
             .size()
             .reset_index(name="건수")
@@ -1462,7 +1495,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>2024+ 운영 트렌드 심화 분석</div>", unsafe_allow_html=True)
 
-    if df_24.empty:
+    eligible_24 = df_24[(df_24["B_exists"]) & (df_24["검토자_정제"] != "미입력")].copy()
+    if eligible_24.empty:
         st.info("선택 필터 내 2024년 이후 데이터가 없습니다.")
     else:
         tab1, tab2, tab3, tab4 = st.tabs(["시계열 트렌드", "리드타임 분석", "지연 분석", "담당자 성과"])
@@ -1471,14 +1505,12 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             view = st.radio("집계 단위", ["월별", "주차별", "분기별"], horizontal=True)
             gc = {"월별": "년월", "주차별": "년주차", "분기별": "년분기"}[view]
             ts_df = (
-                df_24.dropna(subset=[gc])
+                eligible_24.dropna(subset=[gc])
                 .groupby(gc)
-                .apply(
-                    lambda g: pd.Series({
-                        "등록완료": int((g["I_reg_done"] & ~g["is_불가"]).sum()),
-                        "전체건수": int((g["B_exists"] & (g["검토자_정제"] != "미입력")).sum()),
-                        "평균리드타임": g.loc[g["I_reg_done"] & ~g["is_불가"], "리드타임"].mean(),
-                    })
+                .agg(
+                    등록완료=("I_reg_done", lambda s: int((yoy_base.loc[s.index, "I_reg_done"] & (~yoy_base.loc[s.index, "is_불가"])).sum())),
+                    전체건수=("I_reg_done", "count"),
+                    평균리드타임=("리드타임", "mean"),
                 )
                 .reset_index()
             )
@@ -1519,8 +1551,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             fig.update_layout(**CHART_TPL, height=460, barmode="overlay")
             fig.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
             st.plotly_chart(fig, use_container_width=True)
-            with st.expander("상세 수치"):
-                st.dataframe(
+            st.markdown("<div class='filter-row-label'>상세 수치</div>", unsafe_allow_html=True)
+            st.dataframe(
                     ts_df.style.format(
                         {
                             "등록완료": "{:,}",
@@ -1696,16 +1728,14 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>연도별 YoY 성과 비교 · 2024–2026</div>", unsafe_allow_html=True)
 
+    yoy_base = df[(df["B_exists"]) & (df["검토자_정제"] != "미입력")].copy()
     yoy = (
-        df[df["B_exists"] & (df["검토자_정제"] != "미입력")]
-        .groupby("년도")
-        .apply(
-            lambda g: pd.Series({
-                "전체건수": int(len(g)),
-                "등록완료": int((g["I_reg_done"] & ~g["is_불가"]).sum()),
-                "평균리드타임": g.loc[g["I_reg_done"] & ~g["is_불가"], "리드타임"].mean(),
-                "지연건수": int((g["지연여부"] == "지연").sum()),
-            })
+        yoy_base.groupby("년도")
+        .agg(
+            전체건수=("I_reg_done", "count"),
+            등록완료=("I_reg_done", "sum"),
+            평균리드타임=("리드타임", "mean"),
+            지연건수=("지연여부", lambda x: (x == "지연").sum()),
         )
         .reset_index()
         .dropna(subset=["년도"])
@@ -1793,29 +1823,23 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>검토자별 성과 KPI · Performance Analytics</div>", unsafe_allow_html=True)
 
-    reviewer_base = scope_wip[(scope_wip["B_exists"]) & (scope_wip["검토자_정제"] != "미입력")].copy()
+    reviewer_scope = scope_wip[(scope_wip["B_exists"]) & (scope_wip["검토자_정제"] != "미입력")].copy()
     reviewer_kpi = (
-        reviewer_base.groupby("검토자_정제")
-        .apply(
-            lambda g: pd.Series({
-                "담당건수": int(len(g)),
-                "검토진행중": int(g["wip_검토"].sum()),
-                "등록진행중": int(g["wip_등록"].sum()),
-                "등록완료": int((g["I_reg_done"] & ~g["is_불가"]).sum()),
-                "등록불가": int(g["is_불가"].sum()),
-                "SLA위반": int((((g["진행경과일"] > 5) & ~g["is_불가"] & ~g["I_reg_done"])).sum()),
-                "평균진행경과일": g.loc[~g["is_불가"] & ~g["I_reg_done"], "진행경과일"].mean(),
-                "평균리드타임": g.loc[g["I_reg_done"] & ~g["is_불가"], "리드타임"].mean(),
-            })
+        reviewer_scope.groupby("검토자_정제")
+        .agg(
+            담당건수=("브랜드(영문)", "count"),
+            검토진행중=("wip_검토", "sum"),
+            등록진행중=("wip_등록", "sum"),
+            등록완료=("I_reg_done", "sum"),
+            등록불가=("is_불가", "sum"),
+            SLA위반=("SLA상태", lambda x: (x == "위반").sum()),
+            평균진행경과일=("진행경과일", "mean"),
+            평균리드타임=("리드타임", "mean"),
         )
         .reset_index()
-        .rename(columns={"검토자_정제": "검토자"})
         .sort_values(["담당건수", "등록완료"], ascending=[False, False])
     )
-    reviewer_kpi["등록완료율"] = (
-        reviewer_kpi["등록완료"] /
-        (reviewer_kpi["담당건수"] - reviewer_kpi["등록불가"]).replace(0, pd.NA) * 100
-    ).round(1).fillna(0)
+    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / (reviewer_kpi["담당건수"] - reviewer_kpi["등록불가"]).replace(0, pd.NA) * 100).round(1)
     st.dataframe(
         reviewer_kpi.style.format({
             "평균진행경과일": "{:.1f}일",
@@ -1828,12 +1852,47 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
 
     # ══════════════════════════════════════════════
-    # SECTION 1-3 — SLA (비활성화)
+    # SECTION 1-3 — SLA (disabled)
     # ══════════════════════════════════════════════
     if False:
         st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
-
-    # ══════════════════════════════════════════════
+        sla_left, sla_right = st.columns([4, 6])
+        with sla_left:
+            st.markdown(
+                """
+                <div class='info-card'>
+                  <div class='info-card-title'>SLA 정의</div>
+                  <div class='info-card-sub'>
+                    <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
+                    <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
+                    <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
+                    <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
+                  </div>
+                  <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with sla_right:
+            sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
+            if not sla_stat.empty:
+                sla_stat.columns = ["상태", "건수"]
+                fig = px.bar(
+                    sla_stat,
+                    x="상태",
+                    y="건수",
+                    color="상태",
+                    color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
+                    title="<b>SLA 상태 분포</b>",
+                    text="건수",
+                )
+                fig.update_layout(**CHART_TPL, height=260, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+    
+        sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
+        sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
+        st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
+        # ══════════════════════════════════════════════
     
 # SECTION 4-2 — 등록 병목
     # ══════════════════════════════════════════════
@@ -2030,15 +2089,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# PATCH PAD 01
-# PATCH PAD 02
-# PATCH PAD 03
-# PATCH PAD 04
-# PATCH PAD 05
-# PATCH PAD 06
-# PATCH PAD 07
-# PATCH PAD 08
-# PATCH PAD 09
-# PATCH PAD 10
 
