@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P Ops Intelligence",
+    page_title="1P OPS Dashboard",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -139,6 +139,10 @@ li[role="option"]:hover {
 }
 [data-testid="stSidebar"] > div:first-child {
     width: 356px !important;
+}
+[data-testid="stSidebar"] .block-container,
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    padding-left: 18px !important;
 }
 [data-testid="stSidebar"] [data-baseweb="tag"] {
     min-height: 34px !important;
@@ -557,23 +561,6 @@ li[role="option"]:hover {
     display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-right:6px;
 }
 
-[data-testid="stSidebar"] [data-testid="stWidgetLabel"],
-[data-testid="stSidebar"] .stMultiSelect,
-[data-testid="stSidebar"] .stSelectbox,
-[data-testid="stSidebar"] .stTextInput,
-[data-testid="stSidebar"] .stFileUploader {
-    margin-left: 8px !important;
-    width: calc(100% - 8px) !important;
-}
-.material-symbols-outlined, [class*="material-symbols"] {
-    font-family: "Material Symbols Outlined" !important;
-    font-style: normal !important;
-    font-weight: normal !important;
-}
-details summary span[data-testid="stExpanderToggleIcon"] {
-    font-family: inherit !important;
-}
-
 </style>
 """,
     unsafe_allow_html=True,
@@ -680,32 +667,6 @@ def is_filled_text(v) -> bool:
     return s not in ["", "nan", "NaT", "-", "#REF!", "None", "NaN"]
 
 
-def parse_week_token(v):
-    if pd.isna(v):
-        return pd.NaT
-    s = str(v).strip().upper()
-    if s in ["", "-", "#REF!", "NAN", "NAT", "NONE"]:
-        return pd.NaT
-    m = re.match(r"^(\d{2,4})W(\d{1,2})$", s)
-    if not m:
-        return pd.NaT
-    year = int(m.group(1))
-    week = int(m.group(2))
-    if year < 100:
-        year += 2000
-    try:
-        return pd.to_datetime(f"{year}-W{week:02d}-1", format="%G-W%V-%u")
-    except Exception:
-        return pd.NaT
-
-
-def first_non_na(*vals):
-    for v in vals:
-        if pd.notna(v):
-            return v
-    return pd.NaT
-
-
 def safe_rate(n, d) -> float:
     return round(n / d * 100, 1) if d and d > 0 else 0.0
 
@@ -769,32 +730,24 @@ def _build(values: list) -> pd.DataFrame:
 
     reg_done_date_col = first_valid_column(raw, ["등록 완료일"])
     reg_req_date_col = first_valid_column(raw, ["등록 요청일"])
-    reg_week_col = first_valid_column(raw, ["등록 주차"])
     delay_reason_col = first_valid_column(raw, ["지연 사유"])
     country_col = first_valid_column(raw, ["국내/해외"])
     d_col = first_valid_column(raw, ["리스트업 완료"])
     f_col = first_valid_column(raw, ["상품 구매 요청"])
     g_col = first_valid_column(raw, ["상품 구매 완료"])
 
-    brand_mask = raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
-    h_exists = raw[reg_req_date_col].apply(is_filled_text) if reg_req_date_col else pd.Series(False, index=raw.index)
-    j_exists = raw[reg_done_date_col].apply(is_filled_text) if reg_done_date_col else pd.Series(False, index=raw.index)
-    k_exists = raw[reg_week_col].apply(is_filled_text) if reg_week_col else pd.Series(False, index=raw.index)
-    date_mask = h_exists | j_exists | k_exists
-    df = raw[brand_mask & date_mask].copy().reset_index(drop=True)
+    base_mask = raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
+    if reg_req_date_col and reg_req_date_col in raw.columns:
+        base_mask = base_mask & raw[reg_req_date_col].apply(h_filled)
+    df = raw[base_mask].copy().reset_index(drop=True)
 
     df["등록완료일_dt"] = df[reg_done_date_col].apply(parse_date) if reg_done_date_col else pd.NaT
     df["등록요청일_dt"] = df[reg_req_date_col].apply(parse_date) if reg_req_date_col else pd.NaT
-    df["등록주차_dt"] = df[reg_week_col].apply(parse_week_token) if reg_week_col else pd.NaT
-    df["분석기준일_dt"] = df.apply(
-        lambda r: first_non_na(r.get("등록요청일_dt"), r.get("등록완료일_dt"), r.get("등록주차_dt")),
-        axis=1,
-    )
 
-    iso = df["분석기준일_dt"].dt.isocalendar()
-    df["년도"] = df["분석기준일_dt"].dt.year.astype("Int64")
-    df["년월"] = df["분석기준일_dt"].dt.strftime("%Y-%m")
-    df["분기"] = "Q" + df["분석기준일_dt"].dt.quarter.astype("Int64").astype(str)
+    iso = df["등록요청일_dt"].dt.isocalendar()
+    df["년도"] = df["등록요청일_dt"].dt.year.astype("Int64")
+    df["년월"] = df["등록요청일_dt"].dt.strftime("%Y-%m")
+    df["분기"] = "Q" + df["등록요청일_dt"].dt.quarter.astype("Int64").astype(str)
     df["년분기"] = df["년도"].astype(str) + "-" + df["분기"]
     df["주차"] = iso.week.astype("Int64")
     df["년주차"] = iso.year.astype(str) + "-W" + df["주차"].astype(str).str.zfill(2)
@@ -1286,9 +1239,10 @@ def landing():
 # ─────────────────────────────────────────────────────────────
 def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     df_kpi = df[df["년도"].isin([2024, 2025, 2026])].copy()
-    df_24 = df[df["분석기준일_dt"] >= "2024-01-01"].copy()
+    df_24 = df[df["등록요청일_dt"] >= "2024-01-01"].copy()
     scope_wip = df_scope_wip.copy()
     scope_wip = scope_wip[scope_wip["년도"].fillna(2024).astype("Int64") >= 2024]
+    df_kpi_active = df_kpi[~df_kpi["is_불가"]].copy()
 
     ts = st.session_state.get("gsheet_ts", datetime.now().strftime("%Y-%m-%d %H:%M"))
     tag = "Google Sheet · LIVE" if src == "gsheet" else "Excel Upload"
@@ -1310,9 +1264,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>종합 운영 지표</div>", unsafe_allow_html=True)
 
-    eligible_kpi = df_kpi[(df_kpi["B_exists"]) & (df_kpi["검토자_정제"] != "미입력")].copy()
-    total = len(eligible_kpi)
-    done = int(((eligible_kpi["I_reg_done"]) & (~eligible_kpi["is_불가"])).sum())
+    total = len(df_kpi)
+    done = int((df_kpi["I_reg_done"] & ~df_kpi["is_불가"]).sum())
     lt_avg = df_kpi["리드타임"].mean()
     lt_med = df_kpi["리드타임"].median()
     delayed = int((df_kpi["지연여부"] == "지연").sum())
@@ -1346,7 +1299,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             unsafe_allow_html=True,
         )
 
-    kcard(c1, "전체 분석 건수", f"{total:,}", "건", "2024–2026 기준", "#111111")
+    kcard(c1, "전체 분석 건수", f"{total:,}", "건", "H열 등록요청일 기준", "#111111")
     kcard(
         c2,
         "최종 등록 완료",
@@ -1427,10 +1380,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             go.Funnel(
                 y=["리스트업 완료", "검토/등록 요청", "구매 완료", "최종 등록"],
                 x=[
-                    int((eligible_kpi["D_listed"] & (~eligible_kpi["is_불가"])).sum()),
-                    int((eligible_kpi["E_req_done"] & (~eligible_kpi["is_불가"])).sum()),
-                    int((eligible_kpi["G_purchase_done"] & (~eligible_kpi["is_불가"])).sum()),
-                    int((eligible_kpi["I_reg_done"] & (~eligible_kpi["is_불가"])).sum()),
+                    int(df_kpi_active["D_listed"].sum()),
+                    int(df_kpi_active["E_req_done"].sum()),
+                    int(df_kpi_active["G_purchase_done"].sum()),
+                    int(df_kpi_active["I_reg_done"].sum()),
                 ],
                 textinfo="value+percent previous",
                 textfont=dict(size=13, color="#ffffff"),
@@ -1442,7 +1395,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         st.plotly_chart(fig, use_container_width=True)
 
     with p2:
-        sc = eligible_kpi["현재단계"].value_counts().reset_index()
+        sc = df_kpi["현재단계"].value_counts().reset_index()
         sc.columns = ["단계", "건수"]
         fig = go.Figure(
             go.Pie(
@@ -1467,7 +1420,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 
     with p3:
         cross = (
-            eligible_kpi[eligible_kpi["국내해외"].isin(["국내", "해외"])]
+            df_kpi[df_kpi["국내해외"].isin(["국내", "해외"])]
             .groupby(["국내해외", "현재단계"])
             .size()
             .reset_index(name="건수")
@@ -1495,8 +1448,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>2024+ 운영 트렌드 심화 분석</div>", unsafe_allow_html=True)
 
-    eligible_24 = df_24[(df_24["B_exists"]) & (df_24["검토자_정제"] != "미입력")].copy()
-    if eligible_24.empty:
+    if df_24.empty:
         st.info("선택 필터 내 2024년 이후 데이터가 없습니다.")
     else:
         tab1, tab2, tab3, tab4 = st.tabs(["시계열 트렌드", "리드타임 분석", "지연 분석", "담당자 성과"])
@@ -1505,10 +1457,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             view = st.radio("집계 단위", ["월별", "주차별", "분기별"], horizontal=True)
             gc = {"월별": "년월", "주차별": "년주차", "분기별": "년분기"}[view]
             ts_df = (
-                eligible_24.dropna(subset=[gc])
+                df_24.dropna(subset=[gc])
                 .groupby(gc)
                 .agg(
-                    등록완료=("I_reg_done", lambda s: int((yoy_base.loc[s.index, "I_reg_done"] & (~yoy_base.loc[s.index, "is_불가"])).sum())),
+                    등록완료=("I_reg_done", "sum"),
                     전체건수=("I_reg_done", "count"),
                     평균리드타임=("리드타임", "mean"),
                 )
@@ -1551,8 +1503,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             fig.update_layout(**CHART_TPL, height=460, barmode="overlay")
             fig.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
             st.plotly_chart(fig, use_container_width=True)
-            st.markdown("<div class='filter-row-label'>상세 수치</div>", unsafe_allow_html=True)
-            st.dataframe(
+            with st.expander("상세 수치"):
+                st.dataframe(
                     ts_df.style.format(
                         {
                             "등록완료": "{:,}",
@@ -1728,9 +1680,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>연도별 YoY 성과 비교 · 2024–2026</div>", unsafe_allow_html=True)
 
-    yoy_base = df[(df["B_exists"]) & (df["검토자_정제"] != "미입력")].copy()
     yoy = (
-        yoy_base.groupby("년도")
+        df.groupby("년도")
         .agg(
             전체건수=("I_reg_done", "count"),
             등록완료=("I_reg_done", "sum"),
@@ -1823,9 +1774,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>검토자별 성과 KPI · Performance Analytics</div>", unsafe_allow_html=True)
 
-    reviewer_scope = scope_wip[(scope_wip["B_exists"]) & (scope_wip["검토자_정제"] != "미입력")].copy()
     reviewer_kpi = (
-        reviewer_scope.groupby("검토자_정제")
+        scope_wip.groupby("검토자_정제")
         .agg(
             담당건수=("브랜드(영문)", "count"),
             검토진행중=("wip_검토", "sum"),
@@ -1839,7 +1789,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         .reset_index()
         .sort_values(["담당건수", "등록완료"], ascending=[False, False])
     )
-    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / (reviewer_kpi["담당건수"] - reviewer_kpi["등록불가"]).replace(0, pd.NA) * 100).round(1)
+    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / reviewer_kpi["담당건수"] * 100).round(1)
     st.dataframe(
         reviewer_kpi.style.format({
             "평균진행경과일": "{:.1f}일",
@@ -1852,7 +1802,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
 
     # ══════════════════════════════════════════════
-    # SECTION 1-3 — SLA (disabled)
+    # SECTION 1-3 — SLA
     # ══════════════════════════════════════════════
     if False:
         st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
@@ -1888,11 +1838,12 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 )
                 fig.update_layout(**CHART_TPL, height=260, showlegend=False)
                 st.plotly_chart(fig, use_container_width=True)
-    
+
         sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
         sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
         st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
-        # ══════════════════════════════════════════════
+
+    # ══════════════════════════════════════════════
     
 # SECTION 4-2 — 등록 병목
     # ══════════════════════════════════════════════
