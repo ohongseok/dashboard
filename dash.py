@@ -2041,3 +2041,32 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+
+# =========================
+# 🔥 FINAL MASTER OVERRIDE (H열 + 등록불가 기준 통일)
+# =========================
+
+def __final_override(df):
+    df = df.copy()
+
+    # H열 기준
+    has_date = df["H_filled"]
+
+    # 등록불가
+    is_blocked = df["is_불가"]
+
+    # 등록완료 정상
+    df["등록완료_정상_FINAL"] = has_date & df["I_reg_done"] & (~is_blocked)
+
+    # 포함 대상 (분모)
+    df["include_FINAL"] = has_date | is_blocked
+
+    return df
+
+# 적용
+try:
+    df = __final_override(df)
+except:
+    pass
+
