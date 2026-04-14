@@ -614,7 +614,7 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
                 return f"background-color: {c}22; color: {c}; font-weight:600;"
  
             st.dataframe(
-                wip_show.style.applymap(color_stage, subset=["현재단계"]),
+                wip_show.style.map(color_stage, subset=["현재단계"]),
                 use_container_width=True, hide_index=True, height=340
             )
  
@@ -927,7 +927,7 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
         return f"background-color: {c}22; color: {c}; font-weight: 600;"
  
     st.dataframe(
-        df_view.style.applymap(stage_color, subset=["현재단계"]),
+        df_view.style.map(stage_color, subset=["현재단계"]),
         use_container_width=True, hide_index=True, height=460
     )
  
