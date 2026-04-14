@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P OPS Dashboard",
+    page_title="1P Ops Intelligence",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -64,6 +64,7 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
 }
 [data-testid="stSidebar"] > div {
     padding-top: 0 !important;
+    padding-left: 14px !important;
 }
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p,
@@ -139,10 +140,6 @@ li[role="option"]:hover {
 }
 [data-testid="stSidebar"] > div:first-child {
     width: 356px !important;
-}
-[data-testid="stSidebar"] .block-container,
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-    padding-left: 18px !important;
 }
 [data-testid="stSidebar"] [data-baseweb="tag"] {
     min-height: 34px !important;
@@ -737,8 +734,8 @@ def _build(values: list) -> pd.DataFrame:
     g_col = first_valid_column(raw, ["상품 구매 완료"])
 
     base_mask = raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
-    if reg_req_date_col and reg_req_date_col in raw.columns:
-        base_mask = base_mask & raw[reg_req_date_col].apply(h_filled)
+    if reg_done_date_col and reg_done_date_col in raw.columns:
+        base_mask = base_mask & (raw[reg_done_date_col].astype(str).str.strip() != "#REF!")
     df = raw[base_mask].copy().reset_index(drop=True)
 
     df["등록완료일_dt"] = df[reg_done_date_col].apply(parse_date) if reg_done_date_col else pd.NaT
@@ -842,6 +839,8 @@ def _build(values: list) -> pd.DataFrame:
 
     df["SLA상태"] = df.apply(sla_status, axis=1)
     df["등록병목"] = df["wip_등록"] & (df["진행경과일"].fillna(0) > 5)
+    df["include_in_scope"] = df["H_filled"] | df["is_불가"]
+    df["I_reg_done_valid"] = df["I_reg_done"] & (~df["is_불가"])
 
     return df
 
@@ -1238,11 +1237,10 @@ def landing():
 # 7. DASHBOARD
 # ─────────────────────────────────────────────────────────────
 def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
-    df_kpi = df[df["년도"].isin([2024, 2025, 2026])].copy()
-    df_24 = df[df["등록요청일_dt"] >= "2024-01-01"].copy()
+    df_kpi = df[(df["년도"].isin([2024, 2025, 2026])) | (df["is_불가"] & df["년도"].isna())].copy()
+    df_24 = df[((df["등록요청일_dt"] >= "2024-01-01")) | (df["is_불가"] & df["등록요청일_dt"].isna())].copy()
     scope_wip = df_scope_wip.copy()
-    scope_wip = scope_wip[scope_wip["년도"].fillna(2024).astype("Int64") >= 2024]
-    df_kpi_active = df_kpi[~df_kpi["is_불가"]].copy()
+    scope_wip = scope_wip[((scope_wip["년도"].fillna(2024).astype("Int64") >= 2024)) | (scope_wip["is_불가"] & scope_wip["년도"].isna())]
 
     ts = st.session_state.get("gsheet_ts", datetime.now().strftime("%Y-%m-%d %H:%M"))
     tag = "Google Sheet · LIVE" if src == "gsheet" else "Excel Upload"
@@ -1265,7 +1263,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     st.markdown("<div class='sec'>종합 운영 지표</div>", unsafe_allow_html=True)
 
     total = len(df_kpi)
-    done = int((df_kpi["I_reg_done"] & ~df_kpi["is_불가"]).sum())
+    done = int(df_kpi["I_reg_done_valid"].sum())
     lt_avg = df_kpi["리드타임"].mean()
     lt_med = df_kpi["리드타임"].median()
     delayed = int((df_kpi["지연여부"] == "지연").sum())
@@ -1299,7 +1297,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             unsafe_allow_html=True,
         )
 
-    kcard(c1, "전체 분석 건수", f"{total:,}", "건", "H열 등록요청일 기준", "#111111")
+    kcard(c1, "전체 분석 건수", f"{total:,}", "건", "2024–2026 기준", "#111111")
     kcard(
         c2,
         "최종 등록 완료",
@@ -1380,10 +1378,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             go.Funnel(
                 y=["리스트업 완료", "검토/등록 요청", "구매 완료", "최종 등록"],
                 x=[
-                    int(df_kpi_active["D_listed"].sum()),
-                    int(df_kpi_active["E_req_done"].sum()),
-                    int(df_kpi_active["G_purchase_done"].sum()),
-                    int(df_kpi_active["I_reg_done"].sum()),
+                    int(df_kpi.loc[~df_kpi["is_불가"], "D_listed"].sum()),
+                    int(df_kpi.loc[~df_kpi["is_불가"], "E_req_done"].sum()),
+                    int(df_kpi.loc[~df_kpi["is_불가"], "G_purchase_done"].sum()),
+                    int(df_kpi.loc[~df_kpi["is_불가"], "I_reg_done_valid"].sum()),
                 ],
                 textinfo="value+percent previous",
                 textfont=dict(size=13, color="#ffffff"),
@@ -1460,7 +1458,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 df_24.dropna(subset=[gc])
                 .groupby(gc)
                 .agg(
-                    등록완료=("I_reg_done", "sum"),
+                    등록완료=("I_reg_done_valid", "sum"),
                     전체건수=("I_reg_done", "count"),
                     평균리드타임=("리드타임", "mean"),
                 )
@@ -1624,7 +1622,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 df_24.groupby("검토자_정제")
                 .agg(
                     담당건수=("I_reg_done", "count"),
-                    등록완료=("I_reg_done", "sum"),
+                    등록완료=("I_reg_done_valid", "sum"),
                     평균리드타임=("리드타임", "mean"),
                     지연건수=("지연여부", lambda x: (x == "지연").sum()),
                 )
@@ -1656,7 +1654,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 
             preq = (
                 df_24.groupby("요청자_정제")
-                .agg(요청건수=("I_reg_done", "count"), 등록완료=("I_reg_done", "sum"))
+                .agg(요청건수=("I_reg_done", "count"), 등록완료=("I_reg_done_valid", "sum"))
                 .reset_index()
             )
             preq["등록률"] = (preq["등록완료"] / preq["요청건수"] * 100).round(1)
@@ -1684,7 +1682,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         df.groupby("년도")
         .agg(
             전체건수=("I_reg_done", "count"),
-            등록완료=("I_reg_done", "sum"),
+            등록완료=("I_reg_done_valid", "sum"),
             평균리드타임=("리드타임", "mean"),
             지연건수=("지연여부", lambda x: (x == "지연").sum()),
         )
@@ -1780,7 +1778,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             담당건수=("브랜드(영문)", "count"),
             검토진행중=("wip_검토", "sum"),
             등록진행중=("wip_등록", "sum"),
-            등록완료=("I_reg_done", "sum"),
+            등록완료=("I_reg_done_valid", "sum"),
             등록불가=("is_불가", "sum"),
             SLA위반=("SLA상태", lambda x: (x == "위반").sum()),
             평균진행경과일=("진행경과일", "mean"),
@@ -1789,7 +1787,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         .reset_index()
         .sort_values(["담당건수", "등록완료"], ascending=[False, False])
     )
-    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / reviewer_kpi["담당건수"] * 100).round(1)
+    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / (reviewer_kpi["담당건수"] - reviewer_kpi["등록불가"]).replace(0, pd.NA) * 100).round(1)
     st.dataframe(
         reviewer_kpi.style.format({
             "평균진행경과일": "{:.1f}일",
@@ -1807,6 +1805,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     if False:
         st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
         sla_left, sla_right = st.columns([4, 6])
+
         with sla_left:
             st.markdown(
                 """
@@ -2011,6 +2010,7 @@ def main():
             landing()
             return
 
+    df = df[df["include_in_scope"]].copy()
     f_rev, f_country, f_year, f_stage, f_delay, keyword = sidebar(df)
 
     dff_base = df.copy()
