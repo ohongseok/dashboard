@@ -57,7 +57,9 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
 [data-testid="stSidebar"] {
     background: #111111 !important;
     border-right: 1px solid #222222 !important;
-    min-width: 260px !important;
+    min-width: 340px !important;
+    max-width: 380px !important;
+    width: 360px !important;
 }
 [data-testid="stSidebar"] > div {
     padding-top: 0 !important;
@@ -103,8 +105,47 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     color: #8d8d8d !important;
 }
 [data-testid="stSidebar"] svg {
-    fill: #dddddd !important;
+    fill: #f0f0f0 !important;
 }
+
+[data-testid="stSidebar"] > div:first-child {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
+    background: #181818 !important;
+    border: 1px dashed #3a3a3a !important;
+    padding: 14px !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] * {
+    color: #f4f4f4 !important;
+    fill: #f4f4f4 !important;
+    -webkit-text-fill-color: #f4f4f4 !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] span,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] small,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] span,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] label {
+    color: #f4f4f4 !important;
+    -webkit-text-fill-color: #f4f4f4 !important;
+}
+[data-testid="stSidebar"] [data-baseweb="tag"] span,
+[data-testid="stSidebar"] [data-baseweb="select"] span,
+[data-testid="stSidebar"] [data-baseweb="select"] div,
+[data-testid="stSidebar"] .stMultiSelect span,
+[data-testid="stSidebar"] .stSelectbox span,
+[data-testid="stSidebar"] .stFileUploader span,
+[data-testid="stSidebar"] .stFileUploader label {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow: none !important;
+}
+[data-testid="stSidebar"] svg {
+    fill: #f0f0f0 !important;
+    color: #f0f0f0 !important;
+}
+
 
 /* 드롭다운 펼쳤을 때 텍스트 안보이는 문제 대응 */
 div[role="listbox"],
@@ -900,6 +941,47 @@ def sidebar(df: pd.DataFrame):
 # ─────────────────────────────────────────────────────────────
 # 6. LANDING
 # ─────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────
+# 6. INLINE FILTER TABLES
+# ─────────────────────────────────────────────────────────────
+def render_inline_filter_table(df_source: pd.DataFrame, display_cols: list[str], rename_map: dict, filter_cols: list[str], key_prefix: str, empty_message: str, height: int = 320):
+    if df_source.empty:
+        st.success(empty_message)
+        return
+
+    work = df_source[display_cols].rename(columns=rename_map).copy()
+    filter_targets = [rename_map.get(c, c) for c in filter_cols if rename_map.get(c, c) in work.columns]
+
+    if filter_targets:
+        st.markdown("<div class='master-box' style='padding:16px 18px 12px;margin-bottom:12px;'>", unsafe_allow_html=True)
+        st.markdown("<div class='filter-row-label'>Inline Filters</div>", unsafe_allow_html=True)
+        chunks = [filter_targets[i:i+4] for i in range(0, len(filter_targets), 4)]
+        filtered = work.copy()
+        for ridx, chunk in enumerate(chunks):
+            row_cols = st.columns(len(chunk))
+            for cidx, col_name in enumerate(chunk):
+                opts = sorted([x for x in filtered[col_name].dropna().unique().tolist() if str(x).strip() not in ["", "nan"]])
+                selected = row_cols[cidx].multiselect(col_name, opts, key=f"{key_prefix}_{ridx}_{cidx}")
+                if selected:
+                    filtered = filtered[filtered[col_name].isin(selected)]
+        st.markdown(f"<div style='font-size:11px;color:#8a8a8a;padding:6px 2px 0;'>표시 {len(filtered):,}건</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        filtered = work
+
+    style = filtered.style
+    if "현재단계" in filtered.columns:
+        def _stage_style(v):
+            c = STAGE_COLORS.get(v, "#666666")
+            bg = STAGE_BG.get(v, "#f2f2f2")
+            return f"background-color:{bg};color:{c};font-weight:800;"
+        style = style.map(_stage_style, subset=["현재단계"])
+    if "불가사유" in filtered.columns:
+        style = style.set_properties(subset=["불가사유"], **{"font-weight": "700", "color": "#f04452"})
+
+    st.dataframe(style, use_container_width=True, hide_index=True, height=height)
+
 def landing():
     _, col, _ = st.columns([1, 2, 1])
     with col:
@@ -949,9 +1031,6 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         unsafe_allow_html=True,
     )
 
-    # ══════════════════════════════════════════════
-    # SECTION 1 — KPI (2024–2026)
-    # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>종합 핵심 운영 지표 · 2024–2026</div>", unsafe_allow_html=True)
 
     total = len(df_kpi)
@@ -990,142 +1069,46 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         )
 
     kcard(c1, "전체 분석 건수", f"{total:,}", "건", "2024–2026 기준", "#111111")
-    kcard(
-        c2,
-        "최종 등록 완료",
-        f"{done:,}",
-        "건",
-        "누적 등록 성공",
-        "#05c072",
-        f"등록률 {safe_rate(done, total)}%",
-        "#05c07220",
-        "#05c072",
-    )
-    kcard(
-        c3,
-        "평균 리드타임",
-        f"{lt_avg:.1f}" if pd.notna(lt_avg) else "N/A",
-        "일",
-        f"중앙값 {lt_med:.0f}일" if pd.notna(lt_med) else "-",
-        "#8b5cf6",
-    )
-    kcard(
-        c4,
-        "지연 발생 건수",
-        f"{delayed:,}",
-        "건",
-        "지연 사유 기입 건",
-        "#f04452",
-        f"지연률 {safe_rate(delayed, total)}%",
-        "#f0445220",
-        "#f04452",
-    )
+    kcard(c2, "최종 등록 완료", f"{done:,}", "건", "누적 등록 성공", "#05c072", f"등록률 {safe_rate(done, total)}%", "#05c07220", "#05c072")
+    kcard(c3, "평균 리드타임", f"{lt_avg:.1f}" if pd.notna(lt_avg) else "N/A", "일", f"중앙값 {lt_med:.0f}일" if pd.notna(lt_med) else "-", "#8b5cf6")
+    kcard(c4, "지연 발생 건수", f"{delayed:,}", "건", "지연 사유 기입 건", "#f04452", f"지연률 {safe_rate(delayed, total)}%", "#f0445220", "#f04452")
     kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "검토 + 등록 진행중 합계", "#d4ff00")
 
-    # ══════════════════════════════════════════════
-    # SECTION 1-2 — REVIEWER KPI
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>검토자별 성과 KPI</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>핵심 운영 현황 · 메인 보드</div>", unsafe_allow_html=True)
+    st.markdown("<div class='info-card' style='margin-bottom:14px;'><div class='info-card-title'>우선순위 안내</div><div class='info-card-sub'>검토 진행중 · 등록 진행중 · 등록 불가 클로즈 케이스를 최상단 메인 보드로 고정했습니다. 각 섹션에서 컬럼별 Inline Filters로 브랜드 / 요청자 / 검토자 / 국내해외 / 현재단계 / 비고 / 불가사유 기준으로 바로 좁혀볼 수 있습니다.</div></div>", unsafe_allow_html=True)
 
-    reviewer_kpi = (
-        scope_wip.groupby("검토자_정제")
-        .agg(
-            담당건수=("브랜드(영문)", "count"),
-            검토진행중=("wip_검토", "sum"),
-            등록진행중=("wip_등록", "sum"),
-            등록완료=("I_reg_done", "sum"),
-            등록불가=("is_불가", "sum"),
-            SLA위반=("SLA상태", lambda x: (x == "위반").sum()),
-            평균진행경과일=("진행경과일", "mean"),
-            평균리드타임=("리드타임", "mean"),
-        )
-        .reset_index()
-        .sort_values(["담당건수", "등록완료"], ascending=[False, False])
-    )
-    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / reviewer_kpi["담당건수"] * 100).round(1)
-    st.dataframe(
-        reviewer_kpi.style.format({
-            "평균진행경과일": "{:.1f}일",
-            "평균리드타임": "{:.1f}일",
-            "등록완료율": "{:.1f}%",
-        }),
-        use_container_width=True,
-        hide_index=True,
-        height=260,
+    st.markdown("<div class='sec'>🟡 검토 진행중 브랜드</div>", unsafe_allow_html=True)
+    render_inline_filter_table(
+        wip_rev,
+        ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "비고_txt"],
+        {"브랜드(영문)": "브랜드", "요청자_정제": "요청자", "검토자_정제": "검토자", "비고_txt": "비고"},
+        ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "비고_txt"],
+        "review_inline",
+        "현재 검토 진행중 브랜드 없음",
+        height=320,
     )
 
-    # ══════════════════════════════════════════════
-    # SECTION 1-3 — SLA
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>브랜드별 SLA 트래킹</div>", unsafe_allow_html=True)
-    sla_left, sla_right = st.columns([4, 6])
-    with sla_left:
-        st.markdown(
-            """
-            <div class='info-card'>
-              <div class='info-card-title'>SLA 정의</div>
-              <div class='info-card-sub'>
-                <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
-                <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
-                <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
-                <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
-              </div>
-              <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with sla_right:
-        sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
-        if not sla_stat.empty:
-            sla_stat.columns = ["상태", "건수"]
-            fig = px.bar(
-                sla_stat,
-                x="상태",
-                y="건수",
-                color="상태",
-                color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
-                title="<b>SLA 상태 분포</b>",
-                text="건수",
-            )
-            fig.update_layout(**CHART_TPL, height=260, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
+    st.markdown("<div class='sec'>🔵 등록 진행중 브랜드</div>", unsafe_allow_html=True)
+    render_inline_filter_table(
+        wip_reg,
+        ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "진행경과일", "SLA상태", "비고_txt"],
+        {"브랜드(영문)": "브랜드", "요청자_정제": "요청자", "검토자_정제": "검토자", "비고_txt": "비고"},
+        ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "SLA상태", "비고_txt"],
+        "reg_inline",
+        "현재 등록 진행중 브랜드 없음",
+        height=320,
+    )
 
-    sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
-    sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
-    st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
-
-    # ══════════════════════════════════════════════
-    # SECTION 1-4 — 등록 불가
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>등록 불가 클로즈 케이스</div>", unsafe_allow_html=True)
-    if blocked_df.empty:
-        st.success("현재 등록 불가 클로즈 케이스 없음")
-    else:
-        blocked_show = blocked_df[["브랜드(영문)", "요청자_정제", "검토자_정제", "브랜드별검토사항결론_txt", "비고_txt", "불가사유"]].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "브랜드별검토사항결론_txt":"브랜드별 검토사항 결론", "비고_txt":"비고"})
-        st.dataframe(blocked_show, use_container_width=True, hide_index=True, height=260)
-
-    # ══════════════════════════════════════════════
-    # SECTION 1-5 — 검토 진행중 브랜드
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>검토 진행중 브랜드</div>", unsafe_allow_html=True)
-    review_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
-    review_show = wip_rev[review_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
-    if review_show.empty:
-        st.success("현재 검토 진행중 브랜드 없음")
-    else:
-        st.dataframe(review_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=320)
-
-    # ══════════════════════════════════════════════
-    # SECTION 1-6 — 등록 진행중 브랜드
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>등록 진행중 브랜드</div>", unsafe_allow_html=True)
-    reg_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "진행경과일", "SLA상태", "리드타임", "비고_txt"]
-    reg_show = wip_reg[reg_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
-    if reg_show.empty:
-        st.success("현재 등록 진행중 브랜드 없음")
-    else:
-        st.dataframe(reg_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=320)
+    st.markdown("<div class='sec'>🔴 등록 불가 클로즈 케이스</div>", unsafe_allow_html=True)
+    render_inline_filter_table(
+        blocked_df,
+        ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "비고_txt", "불가사유"],
+        {"브랜드(영문)": "브랜드", "요청자_정제": "요청자", "검토자_정제": "검토자", "비고_txt": "비고"},
+        ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "비고_txt", "불가사유"],
+        "blocked_inline",
+        "현재 등록 불가 클로즈 케이스 없음",
+        height=320,
+    )
 
     st.markdown("<hr class='kdiv'>", unsafe_allow_html=True)
     # ══════════════════════════════════════════════
@@ -1529,22 +1512,6 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 
     st.markdown("<hr class='kdiv'>", unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════
-    # SECTION 4-2 — 등록 병목
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>등록 병목 브랜드 · 5일 초과</div>", unsafe_allow_html=True)
-    bottleneck_df = wip_reg[wip_reg["진행경과일"].fillna(0) > 5].copy()
-    if bottleneck_df.empty:
-        st.success("현재 등록 병목 브랜드 없음")
-    else:
-        st.markdown(
-            f"<div class='info-card' style='margin-bottom:14px;'><div class='info-card-title'>자동 병목 알림</div><div class='action-box-value' style='color:#f04452;'>{len(bottleneck_df):,}건</div><div class='info-card-sub'>등록 요청 이후 5일을 초과한 등록 진행중 브랜드입니다.</div></div>",
-            unsafe_allow_html=True,
-        )
-        bt_show = bottleneck_df[["브랜드(영문)", "요청자_정제", "검토자_정제", "진행경과일", "SLA상태", "비고_txt"]].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
-        st.dataframe(bt_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
-
-    st.markdown("<hr class='kdiv'>", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════
     # SECTION 5 — 마스터 트래킹 (2024–2026)
@@ -1661,6 +1628,102 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         mime="text/csv",
     )
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+    st.markdown("<hr class='kdiv'>", unsafe_allow_html=True)
+    # ══════════════════════════════════════════════
+    # SECTION 1-2 — REVIEWER KPI
+    # ══════════════════════════════════════════════
+    st.markdown("<div class='sec'>검토자별 성과 KPI</div>", unsafe_allow_html=True)
+
+    reviewer_kpi = (
+        scope_wip.groupby("검토자_정제")
+        .agg(
+            담당건수=("브랜드(영문)", "count"),
+            검토진행중=("wip_검토", "sum"),
+            등록진행중=("wip_등록", "sum"),
+            등록완료=("I_reg_done", "sum"),
+            등록불가=("is_불가", "sum"),
+            SLA위반=("SLA상태", lambda x: (x == "위반").sum()),
+            평균진행경과일=("진행경과일", "mean"),
+            평균리드타임=("리드타임", "mean"),
+        )
+        .reset_index()
+        .sort_values(["담당건수", "등록완료"], ascending=[False, False])
+    )
+    reviewer_kpi["등록완료율"] = (reviewer_kpi["등록완료"] / reviewer_kpi["담당건수"] * 100).round(1)
+    st.dataframe(
+        reviewer_kpi.style.format({
+            "평균진행경과일": "{:.1f}일",
+            "평균리드타임": "{:.1f}일",
+            "등록완료율": "{:.1f}%",
+        }),
+        use_container_width=True,
+        hide_index=True,
+        height=260,
+    )
+
+    # ══════════════════════════════════════════════
+    # SECTION 1-3 — SLA
+    # ══════════════════════════════════════════════
+    st.markdown("<div class='sec'>브랜드별 SLA 트래킹</div>", unsafe_allow_html=True)
+    sla_left, sla_right = st.columns([4, 6])
+    with sla_left:
+        st.markdown(
+            """
+            <div class='info-card'>
+              <div class='info-card-title'>SLA 정의</div>
+              <div class='info-card-sub'>
+                <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
+                <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
+                <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
+                <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
+              </div>
+              <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with sla_right:
+        sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
+        if not sla_stat.empty:
+            sla_stat.columns = ["상태", "건수"]
+            fig = px.bar(
+                sla_stat,
+                x="상태",
+                y="건수",
+                color="상태",
+                color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
+                title="<b>SLA 상태 분포</b>",
+                text="건수",
+            )
+            fig.update_layout(**CHART_TPL, height=260, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+
+    sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
+    sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
+    st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
+
+
+    st.markdown("<hr class='kdiv'>", unsafe_allow_html=True)
+    # ══════════════════════════════════════════════
+    # SECTION 4-2 — 등록 병목
+    # ══════════════════════════════════════════════
+    st.markdown("<div class='sec'>등록 병목 브랜드 · 5일 초과</div>", unsafe_allow_html=True)
+    bottleneck_df = wip_reg[wip_reg["진행경과일"].fillna(0) > 5].copy()
+    if bottleneck_df.empty:
+        st.success("현재 등록 병목 브랜드 없음")
+    else:
+        st.markdown(
+            f"<div class='info-card' style='margin-bottom:14px;'><div class='info-card-title'>자동 병목 알림</div><div class='action-box-value' style='color:#f04452;'>{len(bottleneck_df):,}건</div><div class='info-card-sub'>등록 요청 이후 5일을 초과한 등록 진행중 브랜드입니다.</div></div>",
+            unsafe_allow_html=True,
+        )
+        bt_show = bottleneck_df[["브랜드(영문)", "요청자_정제", "검토자_정제", "진행경과일", "SLA상태", "비고_txt"]].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
+        st.dataframe(bt_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
+
+    st.markdown("<hr class='kdiv'>", unsafe_allow_html=True)
+
+
 
 # ─────────────────────────────────────────────────────────────
 # 8. MAIN
