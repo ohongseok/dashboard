@@ -872,7 +872,7 @@ def render_header_filter_table(
     for col in safe_df.columns:
         safe_df[col] = safe_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
 
-    table_id = f"tbl_{key or uuid.uuid4().hex[:8]}"
+    table_id = f"tbl_{(key or "default").replace(" ", "_")}"
     rows_json = json.dumps(safe_df.to_dict(orient="records"), ensure_ascii=False)
     cols_json = json.dumps(list(safe_df.columns), ensure_ascii=False)
 
@@ -1160,7 +1160,7 @@ def sidebar(df: pd.DataFrame):
             "XLSX 보조 업로드</p>",
             unsafe_allow_html=True,
         )
-        uploaded = st.file_uploader("", type=["xlsx"], label_visibility="collapsed")
+        uploaded = st.file_uploader("", type=["xlsx"], label_visibility="collapsed", key="sidebar_xlsx_uploader")
         if uploaded:
             from_bytes.clear()
             st.session_state["xlsx_bytes"] = uploaded.read()
@@ -1452,7 +1452,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         tab1, tab2, tab3, tab4 = st.tabs(["시계열 트렌드", "리드타임 분석", "지연 분석", "담당자 성과"])
 
         with tab1:
-            view = st.radio("집계 단위", ["월별", "주차별", "분기별"], horizontal=True)
+            view = st.radio("집계 단위", ["월별", "주차별", "분기별"], horizontal=True, key="trend_granularity")
             gc = {"월별": "년월", "주차별": "년주차", "분기별": "년분기"}[view]
             ts_df = (
                 df_24.dropna(subset=[gc])
@@ -1976,6 +1976,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+# NOTE: stability patch applied
 # ─────────────────────────────────────────────────────────────
 # 8. MAIN
 # ─────────────────────────────────────────────────────────────
@@ -2040,33 +2042,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-# =========================
-# 🔥 FINAL MASTER OVERRIDE (H열 + 등록불가 기준 통일)
-# =========================
-
-def __final_override(df):
-    df = df.copy()
-
-    # H열 기준
-    has_date = df["H_filled"]
-
-    # 등록불가
-    is_blocked = df["is_불가"]
-
-    # 등록완료 정상
-    df["등록완료_정상_FINAL"] = has_date & df["I_reg_done"] & (~is_blocked)
-
-    # 포함 대상 (분모)
-    df["include_FINAL"] = has_date | is_blocked
-
-    return df
-
-# 적용
-try:
-    df = __final_override(df)
-except:
-    pass
-
