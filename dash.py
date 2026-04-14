@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P Ops Intelligence",
+    page_title="1P OPS DASHBOARD",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -555,6 +555,27 @@ li[role="option"]:hover {
 }
 .sla-chip {
     display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-right:6px;
+}
+
+
+/* ━━━ 사이드바 필터 영역 들여쓰기 / 깨짐 추가 보정 ━━━ */
+[data-testid="stSidebar"] .stMultiSelect,
+[data-testid="stSidebar"] .stSelectbox,
+[data-testid="stSidebar"] .stTextInput,
+[data-testid="stSidebar"] .stRadio,
+[data-testid="stSidebar"] .stCheckbox,
+[data-testid="stSidebar"] .stFileUploader {
+    padding-left: 12px !important;
+    padding-right: 4px !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] {
+    margin-left: 6px !important;
+}
+[data-testid="stSidebar"] [data-baseweb="tag"] {
+    margin-left: 6px !important;
+}
+[data-testid="stSidebar"] label {
+    padding-left: 6px !important;
 }
 
 </style>
@@ -1126,7 +1147,7 @@ def sidebar(df: pd.DataFrame):
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-        if st.button("↻  구글 시트 동기화", key="sync_btn_main", use_container_width=True, type="primary"):
+        if st.button("↻  구글 시트 동기화", use_container_width=True, type="primary", key="sync_btn_sidebar_main"):
             with st.spinner("연결 중..."):
                 vals, err = load_from_gsheet()
             if err:
@@ -1234,10 +1255,19 @@ def landing():
 # 7. DASHBOARD
 # ─────────────────────────────────────────────────────────────
 def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
-    df_kpi = df[df["년도"].isin([2024, 2025, 2026])].copy()
+    analysis_base = df.copy()
+    analysis_base["분석기준일_dt"] = analysis_base["등록요청일_dt"].where(
+        analysis_base["등록요청일_dt"].notna(), analysis_base["등록완료일_dt"]
+    )
+    analysis_base = analysis_base[analysis_base["분석기준일_dt"] >= "2024-01-01"].copy()
+
+    df_kpi = analysis_base.copy()
     df_24 = df[df["등록완료일_dt"] >= "2024-01-01"].copy()
     scope_wip = df_scope_wip.copy()
-    scope_wip = scope_wip[scope_wip["년도"].fillna(2024).astype("Int64") >= 2024]
+    scope_wip["분석기준일_dt"] = scope_wip["등록요청일_dt"].where(
+        scope_wip["등록요청일_dt"].notna(), scope_wip["등록완료일_dt"]
+    )
+    scope_wip = scope_wip[scope_wip["분석기준일_dt"] >= "2024-01-01"].copy()
 
     ts = st.session_state.get("gsheet_ts", datetime.now().strftime("%Y-%m-%d %H:%M"))
     tag = "Google Sheet · LIVE" if src == "gsheet" else "Excel Upload"
@@ -1259,11 +1289,11 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>종합 핵심 운영 지표 · 2024–2026</div>", unsafe_allow_html=True)
 
-    total = len(df_kpi)
-    done = int(df_kpi["I_reg_done"].sum())
-    lt_avg = df_kpi["리드타임"].mean()
-    lt_med = df_kpi["리드타임"].median()
-    delayed = int((df_kpi["지연여부"] == "지연").sum())
+    total = len(df_kpi[~df_kpi["is_불가"]])
+    done = int(df_kpi[(~df_kpi["is_불가"]) & (df_kpi["I_reg_done"])].shape[0])
+    lt_avg = df_kpi[df_kpi["리드타임"].notna()]["리드타임"].mean()
+    lt_med = df_kpi[df_kpi["리드타임"].notna()]["리드타임"].median()
+    delayed = int(((df_kpi["지연여부"] == "지연") & (~df_kpi["is_불가"])).sum())
 
     wip_reg = scope_wip[scope_wip["wip_등록"]].copy()
     wip_rev = scope_wip[scope_wip["wip_검토"]].copy()
@@ -1796,47 +1826,47 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         height=260,
     )
 
-    # ══════════════════════════════════════════════
-    # SECTION 1-3 — SLA
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
-    sla_left, sla_right = st.columns([4, 6])
-    with sla_left:
-        st.markdown(
-            """
-            <div class='info-card'>
-              <div class='info-card-title'>SLA 정의</div>
-              <div class='info-card-sub'>
-                <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
-                <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
-                <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
-                <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
-              </div>
-              <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with sla_right:
-        sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
-        if not sla_stat.empty:
-            sla_stat.columns = ["상태", "건수"]
-            fig = px.bar(
-                sla_stat,
-                x="상태",
-                y="건수",
-                color="상태",
-                color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
-                title="<b>SLA 상태 분포</b>",
-                text="건수",
+    if False:
+        # ══════════════════════════════════════════════
+        # SECTION 1-3 — SLA
+        # ══════════════════════════════════════════════
+        st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
+        sla_left, sla_right = st.columns([4, 6])
+        with sla_left:
+            st.markdown(
+                """
+                <div class='info-card'>
+                  <div class='info-card-title'>SLA 정의</div>
+                  <div class='info-card-sub'>
+                    <span class='sla-chip' style='background:#eaf8ef;color:#05c072;'>정상 · 3일 이내</span>
+                    <span class='sla-chip' style='background:#fff5df;color:#f5a623;'>주의 · 4~5일</span>
+                    <span class='sla-chip' style='background:#ffe8ea;color:#f04452;'>위반 · 6일 이상</span>
+                    <span class='sla-chip' style='background:#f2f2f2;color:#777777;'>클로즈 · 등록 불가</span>
+                  </div>
+                  <div class='info-card-sub' style='margin-top:10px;'>진행경과일 = 오늘 - 등록요청일 기준입니다. 등록 불가 케이스는 WIP에서 제외하고 별도 클로즈로 관리합니다.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-            fig.update_layout(**CHART_TPL, height=260, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
+        with sla_right:
+            sla_stat = scope_wip["SLA상태"].value_counts().reset_index()
+            if not sla_stat.empty:
+                sla_stat.columns = ["상태", "건수"]
+                fig = px.bar(
+                    sla_stat,
+                    x="상태",
+                    y="건수",
+                    color="상태",
+                    color_discrete_map={"정상":"#05c072","주의":"#f5a623","위반":"#f04452","클로즈":"#7a7a7a","미측정":"#c7c7c7"},
+                    title="<b>SLA 상태 분포</b>",
+                    text="건수",
+                )
+                fig.update_layout(**CHART_TPL, height=260, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
 
-    sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
-    sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
-    st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
-
+        sla_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
+        sla_show = scope_wip[sla_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
+        st.dataframe(sla_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True]), use_container_width=True, hide_index=True, height=260)
     # ══════════════════════════════════════════════
     
 # SECTION 4-2 — 등록 병목
@@ -2034,4 +2064,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
