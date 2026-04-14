@@ -864,248 +864,33 @@ def render_header_filter_table(
     key: str | None = None,
     accent: str = "#111111",
 ):
-    """Interactive table with click-to-open header filters."""
+    """Stable enterprise table renderer.
+    Replaces the heavy HTML/JS filter table to avoid rerender loops on Streamlit Cloud.
+    """
     if df is None or df.empty:
         return
 
     safe_df = df.copy()
     for col in safe_df.columns:
-        safe_df[col] = safe_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
+        safe_df[col] = safe_df[col].apply(lambda x: "" if pd.isna(x) else x)
 
-    table_id = f"tbl_{(key or "default").replace(" ", "_")}"
-    rows_json = json.dumps(safe_df.to_dict(orient="records"), ensure_ascii=False)
-    cols_json = json.dumps(list(safe_df.columns), ensure_ascii=False)
+    st.markdown(
+        f"""
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:2px 0 10px 0;">
+          <div style="font-size:11px;font-weight:900;letter-spacing:1.4px;color:{accent};">ALL DATA</div>
+          <div style="font-size:11px;color:#8b8b95;font-weight:700;">안정형 보기 · 사이드바 필터 사용</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    html_code = f"""
-    <div id="{table_id}" class="oa-grid-wrap">
-      <div class="oa-grid-toolbar">
-        <div class="oa-grid-title">ALL DATA</div>
-        <div class="oa-grid-meta">헤더 클릭 → 필터 열기</div>
-      </div>
-      <div class="oa-grid-scroller">
-        <table class="oa-grid" id="{table_id}_table">
-          <thead id="{table_id}_thead"></thead>
-          <tbody id="{table_id}_tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <style>
-      .oa-grid-wrap {{
-        background: #ffffff;
-        border: 1px solid #e8e8ee;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-      }}
-      .oa-grid-toolbar {{
-        display:flex; align-items:center; justify-content:space-between;
-        padding: 12px 14px; background:#fafafc; border-bottom:1px solid #ededf2;
-      }}
-      .oa-grid-title {{
-        font-size: 11px; font-weight: 900; letter-spacing: 1.4px; color:{accent};
-      }}
-      .oa-grid-meta {{
-        font-size: 11px; color:#8b8b95; font-weight:700;
-      }}
-      .oa-grid-scroller {{
-        overflow:auto; max-height:{height}px;
-      }}
-      .oa-grid {{
-        width:100%; border-collapse: separate; border-spacing:0; min-width: 1020px;
-        font-family: Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
-      }}
-      .oa-grid thead th {{
-        position: sticky; top: 0; z-index: 3;
-        background:#f8f8fa; color:#111111; font-size:13px; font-weight:800;
-        text-align:left; padding:0; border-bottom:1px solid #e9e9ef; white-space:nowrap;
-      }}
-      .oa-head-btn {{
-        all: unset; display:flex; width:100%; align-items:center; justify-content:space-between;
-        padding: 12px 12px; cursor:pointer; box-sizing:border-box;
-      }}
-      .oa-head-btn:hover {{
-        background:#f0f1f5;
-      }}
-      .oa-filter-chip {{
-        font-size:10px; color:#8f8f99; font-weight:900; letter-spacing:.5px;
-      }}
-      .oa-grid tbody td {{
-        padding: 11px 12px; font-size:13px; color:#222; border-bottom:1px solid #f2f2f6;
-        background:#fff; vertical-align: top;
-      }}
-      .oa-grid tbody tr:hover td {{
-        background:#fcfcfd;
-      }}
-      .oa-filter-row td {{
-        background:#ffffff; border-bottom:1px solid #ececf2; padding:10px 12px;
-      }}
-      .oa-filter-box {{
-        display:none;
-      }}
-      .oa-filter-box.open {{
-        display:block;
-      }}
-      .oa-filter-select, .oa-filter-input {{
-        width:100%; border:1px solid #dcdee5; border-radius:10px; background:#fff;
-        color:#111; font-size:12px; padding:8px 10px; outline:none;
-      }}
-      .oa-filter-actions {{
-        display:flex; gap:8px; margin-top:8px;
-      }}
-      .oa-mini-btn {{
-        border:none; border-radius:9px; padding:6px 10px; font-size:11px; font-weight:800; cursor:pointer;
-      }}
-      .oa-mini-btn.apply {{
-        background:{accent}; color:#fff;
-      }}
-      .oa-mini-btn.reset {{
-        background:#f2f3f6; color:#555;
-      }}
-      .oa-empty {{
-        padding:22px 16px; color:#808089; font-size:13px; font-weight:700;
-      }}
-    </style>
-
-    <script>
-      const rows = {rows_json};
-      const cols = {cols_json};
-      const state = Object.fromEntries(cols.map(c => [c, ""]));
-
-      const thead = document.getElementById("{table_id}_thead");
-      const tbody = document.getElementById("{table_id}_tbody");
-
-      function uniqValues(col) {{
-        const vals = [...new Set(rows.map(r => (r[col] ?? "").toString()).filter(v => v !== ""))];
-        vals.sort((a,b) => a.localeCompare(b, 'ko'));
-        return vals;
-      }}
-
-      function buildHeader() {{
-        const headTr = document.createElement("tr");
-        cols.forEach(col => {{
-          const th = document.createElement("th");
-          const btn = document.createElement("button");
-          btn.className = "oa-head-btn";
-          btn.innerHTML = `<span>${{col}}</span><span class="oa-filter-chip">${{state[col] ? "FILTERED" : "ALL"}}</span>`;
-          btn.onclick = () => toggleFilter(col);
-          th.appendChild(btn);
-          headTr.appendChild(th);
-        }});
-        thead.innerHTML = "";
-        thead.appendChild(headTr);
-
-        const filterTr = document.createElement("tr");
-        filterTr.className = "oa-filter-row";
-        cols.forEach(col => {{
-          const td = document.createElement("td");
-          const box = document.createElement("div");
-          box.className = "oa-filter-box";
-          box.id = `${{col}}_box_{table_id}`;
-
-          const values = uniqValues(col);
-          const shortList = values.length > 0 && values.length <= 50;
-
-          if (shortList) {{
-            const select = document.createElement("select");
-            select.className = "oa-filter-select";
-            select.id = `${{col}}_input_{table_id}`;
-            const base = document.createElement("option");
-            base.value = "";
-            base.textContent = "ALL";
-            select.appendChild(base);
-            values.forEach(v => {{
-              const opt = document.createElement("option");
-              opt.value = v;
-              opt.textContent = v;
-              if (state[col] === v) opt.selected = true;
-              select.appendChild(opt);
-            }});
-            box.appendChild(select);
-          }} else {{
-            const input = document.createElement("input");
-            input.className = "oa-filter-input";
-            input.id = `${{col}}_input_{table_id}`;
-            input.placeholder = "검색어 입력";
-            input.value = state[col] || "";
-            box.appendChild(input);
-          }}
-
-          const actions = document.createElement("div");
-          actions.className = "oa-filter-actions";
-          actions.innerHTML = `
-            <button class="oa-mini-btn apply" onclick="window.applyFilter_{table_id}('${{col}}')">적용</button>
-            <button class="oa-mini-btn reset" onclick="window.resetFilter_{table_id}('${{col}}')">초기화</button>
-          `;
-          box.appendChild(actions);
-          td.appendChild(box);
-          filterTr.appendChild(td);
-        }});
-        thead.appendChild(filterTr);
-      }}
-
-      function toggleFilter(col) {{
-        cols.forEach(c => {{
-          const el = document.getElementById(`${{c}}_box_{table_id}`);
-          if (!el) return;
-          if (c === col) {{
-            el.classList.toggle("open");
-          }} else {{
-            el.classList.remove("open");
-          }}
-        }});
-      }}
-
-      function renderBody() {{
-        const filtered = rows.filter(r => cols.every(col => {{
-          const q = (state[col] ?? "").toString().trim().toLowerCase();
-          if (!q) return true;
-          const v = (r[col] ?? "").toString().toLowerCase();
-          return v.includes(q);
-        }}));
-
-        tbody.innerHTML = "";
-        if (filtered.length === 0) {{
-          const tr = document.createElement("tr");
-          const td = document.createElement("td");
-          td.colSpan = cols.length;
-          td.className = "oa-empty";
-          td.textContent = "조건에 맞는 데이터가 없습니다.";
-          tr.appendChild(td);
-          tbody.appendChild(tr);
-          return;
-        }}
-
-        filtered.forEach(row => {{
-          const tr = document.createElement("tr");
-          cols.forEach(col => {{
-            const td = document.createElement("td");
-            td.textContent = (row[col] ?? "").toString();
-            tr.appendChild(td);
-          }});
-          tbody.appendChild(tr);
-        }});
-      }}
-
-      window.applyFilter_{table_id} = function(col) {{
-        const el = document.getElementById(`${{col}}_input_{table_id}`);
-        state[col] = el ? el.value : "";
-        buildHeader();
-        renderBody();
-      }}
-
-      window.resetFilter_{table_id} = function(col) {{
-        state[col] = "";
-        buildHeader();
-        renderBody();
-      }}
-
-      buildHeader();
-      renderBody();
-    </script>
-    """
-    components.html(html_code, height=height + 72, scrolling=False)
-
+    st.dataframe(
+        safe_df,
+        use_container_width=True,
+        hide_index=True,
+        height=height,
+        key=(key or "stable_table")
+    )
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1160,7 +945,7 @@ def sidebar(df: pd.DataFrame):
             "XLSX 보조 업로드</p>",
             unsafe_allow_html=True,
         )
-        uploaded = st.file_uploader("", type=["xlsx"], label_visibility="collapsed", key="sidebar_xlsx_uploader")
+        uploaded = st.file_uploader("", type=["xlsx"], label_visibility="collapsed", key="xlsx_aux_upload")
         if uploaded:
             from_bytes.clear()
             st.session_state["xlsx_bytes"] = uploaded.read()
@@ -1182,19 +967,19 @@ def sidebar(df: pd.DataFrame):
         )
 
         avail = [r for r in FIXED_REVIEWERS if r in df["검토자_정제"].unique()]
-        f_rev = st.multiselect("검토자", FIXED_REVIEWERS, default=avail)
+        f_rev = st.multiselect("검토자", FIXED_REVIEWERS, default=avail, key="sb_reviewers")
 
         c_opts = sorted(df["국내해외"].dropna().unique().tolist())
-        f_country = st.multiselect("국내 / 해외", c_opts, default=c_opts)
+        f_country = st.multiselect("국내 / 해외", c_opts, default=c_opts, key="sb_country")
 
         y_opts = sorted([y for y in df["년도"].dropna().unique().tolist() if int(y) >= 2024])
-        f_year = st.multiselect("분석 연도", y_opts, default=y_opts)
+        f_year = st.multiselect("분석 연도", y_opts, default=y_opts, key="sb_year")
 
         s_opts = sorted(df["현재단계"].dropna().unique().tolist())
-        f_stage = st.multiselect("진행 단계", s_opts, default=s_opts)
+        f_stage = st.multiselect("진행 단계", s_opts, default=s_opts, key="sb_stage")
 
-        f_delay = st.multiselect("지연 여부", ["정상", "지연"], default=["정상", "지연"])
-        keyword = st.text_input("브랜드 검색", placeholder="예: Jellycat")
+        f_delay = st.multiselect("지연 여부", ["정상", "지연"], default=["정상", "지연"], key="sb_delay")
+        keyword = st.text_input("브랜드 검색", placeholder="예: Jellycat", key="sb_keyword")
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown(
@@ -1976,8 +1761,6 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-
-# NOTE: stability patch applied
 # ─────────────────────────────────────────────────────────────
 # 8. MAIN
 # ─────────────────────────────────────────────────────────────
@@ -2042,3 +1825,219 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
+# stable-padding
