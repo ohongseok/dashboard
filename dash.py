@@ -61,6 +61,7 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     background: #111111 !important;
     border-right: 1px solid #222222 !important;
     min-width: 260px !important;
+    padding-left: 18px !important;
 }
 [data-testid="stSidebar"] > div {
     padding-top: 0 !important;
@@ -555,27 +556,6 @@ li[role="option"]:hover {
 }
 .sla-chip {
     display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-right:6px;
-}
-
-
-/* ━━━ 사이드바 필터 영역 들여쓰기 / 깨짐 추가 보정 ━━━ */
-[data-testid="stSidebar"] .stMultiSelect,
-[data-testid="stSidebar"] .stSelectbox,
-[data-testid="stSidebar"] .stTextInput,
-[data-testid="stSidebar"] .stRadio,
-[data-testid="stSidebar"] .stCheckbox,
-[data-testid="stSidebar"] .stFileUploader {
-    padding-left: 18px !important;
-    padding-right: 6px !important;
-}
-[data-testid="stSidebar"] [data-baseweb="select"] {
-    margin-left: 10px !important;
-}
-[data-testid="stSidebar"] [data-baseweb="tag"] {
-    margin-left: 10px !important;
-}
-[data-testid="stSidebar"] label {
-    padding-left: 10px !important;
 }
 
 </style>
@@ -1147,7 +1127,7 @@ def sidebar(df: pd.DataFrame):
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-        if st.button("↻  구글 시트 동기화", use_container_width=True, type="primary", key="sync_btn_sidebar_main"):
+        if st.button("↻  구글 시트 동기화", key="sync_btn_sidebar_main", use_container_width=True, type="primary"):
             with st.spinner("연결 중..."):
                 vals, err = load_from_gsheet()
             if err:
@@ -1255,13 +1235,10 @@ def landing():
 # 7. DASHBOARD
 # ─────────────────────────────────────────────────────────────
 def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
-    df_kpi = df.copy()
-    df_kpi["분석기준일_dt"] = df_kpi["등록요청일_dt"].where(df_kpi["등록요청일_dt"].notna(), df_kpi["등록완료일_dt"])
-    df_kpi = df_kpi[df_kpi["분석기준일_dt"] >= "2024-01-01"].copy()
+    df_kpi = df[df["년도"].isin([2024, 2025, 2026])].copy()
     df_24 = df[df["등록완료일_dt"] >= "2024-01-01"].copy()
     scope_wip = df_scope_wip.copy()
-    scope_wip["분석기준일_dt"] = scope_wip["등록요청일_dt"].where(scope_wip["등록요청일_dt"].notna(), scope_wip["등록완료일_dt"])
-    scope_wip = scope_wip[scope_wip["분석기준일_dt"] >= "2024-01-01"].copy()
+    scope_wip = scope_wip[scope_wip["년도"].fillna(2024).astype("Int64") >= 2024]
 
     ts = st.session_state.get("gsheet_ts", datetime.now().strftime("%Y-%m-%d %H:%M"))
     tag = "Google Sheet · LIVE" if src == "gsheet" else "Excel Upload"
@@ -1283,12 +1260,11 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>종합 핵심 운영 지표 · 2024–2026</div>", unsafe_allow_html=True)
 
-    kpi_pool = df_kpi[~df_kpi["is_불가"]].copy()
-    total = len(kpi_pool)
-    done = int(kpi_pool["I_reg_done"].sum())
-    lt_avg = kpi_pool["리드타임"].mean()
-    lt_med = kpi_pool["리드타임"].median()
-    delayed = int((kpi_pool["지연여부"] == "지연").sum())
+    total = len(df_kpi)
+    done = int(df_kpi["I_reg_done"].sum())
+    lt_avg = df_kpi["리드타임"].mean()
+    lt_med = df_kpi["리드타임"].median()
+    delayed = int((df_kpi["지연여부"] == "지연").sum())
 
     wip_reg = scope_wip[scope_wip["wip_등록"]].copy()
     wip_rev = scope_wip[scope_wip["wip_검토"]].copy()
@@ -1821,11 +1797,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         height=260,
     )
 
-    if False:
-        # ══════════════════════════════════════════════
-        # SECTION 1-3 — SLA
-        # ══════════════════════════════════════════════
-        st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
+    # ══════════════════════════════════════════════
+    # SECTION 1-3 — SLA
+    # ══════════════════════════════════════════════
+    st.markdown("<div class='sec'>브랜드별 SLA 트래킹 · Monitoring</div>", unsafe_allow_html=True)
     sla_left, sla_right = st.columns([4, 6])
     with sla_left:
         st.markdown(
@@ -2060,3 +2035,33 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# === PATCH: FLAG & KPI OVERRIDE START ===
+def __fix_core_logic(df):
+    try:
+        if "비고" in df.columns and "브랜드별 검토사항 결론" in df.columns:
+            text = (df["비고"].fillna("") + df["브랜드별 검토사항 결론"].fillna("")).str.lower()
+        else:
+            text = (df.iloc[:,14].astype(str) + df.iloc[:,15].astype(str)).str.lower()
+
+        df["등록불가"] = text.str.contains("등록불가|등록 불가")
+
+        df["검토 진행중"] = (
+            df["요청자"].astype(str).str.strip() != ""
+        ) & (~df["등록불가"]) & (df.get("요청완료", False) == False)
+
+        df["등록 진행중"] = (
+            df["요청자"].astype(str).str.strip() != ""
+        ) & (~df["등록불가"]) & (df.get("요청완료", False) == True) & (df.get("등록완료", False) == False)
+
+    except Exception:
+        pass
+    return df
+
+# apply override if df exists
+try:
+    df = __fix_core_logic(df)
+except:
+    pass
+# === PATCH END ===
