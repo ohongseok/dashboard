@@ -21,195 +21,171 @@ st.set_page_config(
 )
  
 # ─────────────────────────────────────────────
-# KREAM-inspired CSS
+# KREAM-inspired CSS — 가시성 강화 버전
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap');
  
-/* ── 전역 ── */
 html, body, [class*="css"], .stMarkdown, .stText {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
 }
 .main, .block-container {
-    background: #fafafa !important;
+    background: #f5f5f5 !important;
     padding-top: 0 !important;
 }
-.block-container { max-width: 100% !important; padding: 0 32px 40px 32px !important; }
+.block-container { max-width:100% !important; padding: 0 32px 40px 32px !important; }
  
 /* ── 사이드바 ── */
-[data-testid="stSidebar"] {
-    background: #111111 !important;
-    border-right: 1px solid #222 !important;
-}
+[data-testid="stSidebar"] { background: #0f0f0f !important; border-right: 1px solid #2a2a2a !important; }
 [data-testid="stSidebar"] > div { padding-top: 0 !important; }
 [data-testid="stSidebar"] .stMarkdown p,
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] .stMultiSelect label,
-[data-testid="stSidebar"] .stTextInput label { color: #aaaaaa !important; font-size: 11px !important; }
+[data-testid="stSidebar"] label { color: #999 !important; font-size: 11px !important; font-weight:600 !important; }
 [data-testid="stSidebar"] .stButton > button {
-    background: #ffffff !important; color: #111 !important;
-    border: none !important; border-radius: 6px !important;
-    font-weight: 700 !important; font-size: 13px !important;
-    height: 40px !important;
+    background: #d4ff00 !important; color: #111 !important;
+    border: none !important; border-radius: 8px !important;
+    font-weight: 800 !important; font-size: 13px !important; height: 42px !important;
 }
-[data-testid="stSidebar"] .stButton > button:hover { background: #e5e5e5 !important; }
-[data-testid="stSidebar"] [data-baseweb="tag"] {
-    background: #333 !important; color: #fff !important;
-}
+[data-testid="stSidebar"] .stButton > button:hover { background: #c3ec00 !important; }
+[data-testid="stSidebar"] [data-baseweb="tag"] { background: #2a2a2a !important; color: #eee !important; }
+[data-testid="stSidebar"] input { background: #1e1e1e !important; color: #eee !important; border-color:#333 !important; }
  
-/* ── 탑 헤더 바 ── */
+/* ── 헤더 바 ── */
 .kream-header {
-    background: #111111;
-    color: white;
-    padding: 0 32px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    background: #111; color: white;
+    padding: 0 32px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
     margin: 0 -32px 28px -32px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
 }
-.kream-logo {
-    font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: white;
+.kream-logo { font-size:20px; font-weight:900; letter-spacing:-1px; color:white; }
+.kream-logo em { font-style:normal; color:#d4ff00; }
+.header-meta { font-size:12px; color:#666; display:flex; align-items:center; gap:16px; }
+.live-pill {
+    background:#d4ff00; color:#111; font-size:10px; font-weight:900;
+    letter-spacing:1.5px; padding:3px 10px; border-radius:20px;
 }
-.kream-logo span { color: #ccff00; }
-.kream-header-right { display: flex; align-items: center; gap: 16px; }
-.live-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #ccff00; display: inline-block; margin-right: 5px;
-    animation: pulse 1.5s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-.live-badge {
-    font-size: 11px; font-weight: 700; color: #ccff00;
-    letter-spacing: 1px;
-}
-.header-ts { font-size: 11px; color: #666; }
  
 /* ── 섹션 타이틀 ── */
 .sec-title {
-    font-size: 13px; font-weight: 700; color: #111;
-    letter-spacing: 0.8px; text-transform: uppercase;
-    border-left: 3px solid #111; padding-left: 10px;
-    margin: 28px 0 14px 0;
+    font-size:14px; font-weight:800; color:#111;
+    letter-spacing:0.5px; text-transform:uppercase;
+    padding:6px 0 6px 14px; border-left:4px solid #111;
+    margin:28px 0 16px 0; background:transparent;
 }
-.sec-title-gray {
-    font-size: 13px; font-weight: 700; color: #555;
-    letter-spacing: 0.8px; text-transform: uppercase;
-    border-left: 3px solid #ccc; padding-left: 10px;
-    margin: 28px 0 14px 0;
+.sec-title-accent {
+    font-size:14px; font-weight:800; color:#111;
+    letter-spacing:0.5px; text-transform:uppercase;
+    padding:6px 0 6px 14px; border-left:4px solid #d4ff00;
+    background: linear-gradient(90deg,rgba(212,255,0,0.08) 0%,transparent 60%);
+    margin:28px 0 16px 0;
+}
+.sec-title-muted {
+    font-size:13px; font-weight:700; color:#555;
+    letter-spacing:0.5px; text-transform:uppercase;
+    padding:6px 0 6px 12px; border-left:3px solid #ccc;
+    margin:28px 0 16px 0;
 }
  
 /* ── KPI 카드 ── */
-.kpi-wrap {
-    background: #ffffff;
-    border: 1px solid #ebebeb;
-    border-radius: 12px;
-    padding: 20px 20px 16px 20px;
-    transition: box-shadow .15s;
+.kpi-card {
+    background:#fff; border:1.5px solid #e8e8e8;
+    border-radius:14px; padding:22px 20px 18px;
+    transition: box-shadow .2s, border-color .2s;
+    position: relative; overflow: hidden;
 }
-.kpi-wrap:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-.kpi-tag {
-    font-size: 10px; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; color: #999; margin-bottom: 6px;
+.kpi-card:hover { box-shadow:0 8px 30px rgba(0,0,0,0.10); border-color:#ccc; }
+.kpi-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:4px;
+    background: var(--accent, #111);
 }
-.kpi-num {
-    font-size: 32px; font-weight: 900; color: #111;
-    line-height: 1; letter-spacing: -1px;
-}
-.kpi-num-sm { font-size: 24px; }
-.kpi-unit { font-size: 14px; font-weight: 600; color: #555; margin-left: 2px; }
-.kpi-sub { font-size: 11px; color: #bbb; margin-top: 5px; }
-.kpi-accent-green  { border-top: 3px solid #05c072; }
-.kpi-accent-black  { border-top: 3px solid #111; }
-.kpi-accent-yellow { border-top: 3px solid #f5a623; }
-.kpi-accent-red    { border-top: 3px solid #f04452; }
-.kpi-accent-purple { border-top: 3px solid #8b5cf6; }
-.kpi-accent-lime   { border-top: 3px solid #ccff00; }
- 
-/* ── 배너 ── */
-.banner-live {
-    background: #111; color: #ccff00;
-    border-radius: 8px; padding: 9px 16px;
-    font-size: 12px; font-weight: 600;
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 20px;
-}
-.banner-excel {
-    background: #fffbe6; color: #7a5800;
-    border: 1px solid #ffe58f;
-    border-radius: 8px; padding: 9px 16px;
-    font-size: 12px; font-weight: 600;
-    margin-bottom: 20px;
+.kpi-tag { font-size:10px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#999; margin-bottom:10px; }
+.kpi-num { font-size:36px; font-weight:900; color:#111; line-height:1; letter-spacing:-2px; }
+.kpi-num-unit { font-size:16px; font-weight:700; color:#777; margin-left:2px; }
+.kpi-sub { font-size:11px; color:#aaa; margin-top:8px; font-weight:500; }
+.kpi-badge {
+    display:inline-block; font-size:10px; font-weight:800;
+    padding:2px 8px; border-radius:20px; margin-top:6px;
+    letter-spacing:0.5px;
 }
  
-/* ── 차트 카드 ── */
-.chart-card {
-    background: white; border: 1px solid #ebebeb;
-    border-radius: 12px; padding: 20px;
-    margin-bottom: 12px;
+/* ── WIP 구분 카드 ── */
+.wip-type-header {
+    font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+    color:#fff; padding:5px 12px; border-radius:6px; display:inline-block;
+    margin-bottom:10px;
 }
- 
-/* ── WIP 팝업 테이블 ── */
 .wip-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 0; border-bottom: 1px solid #f0f0f0;
-    font-size: 13px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid #f0f0f0;
+    border-radius:8px; margin-bottom:4px; background:#fafafa;
+    transition: background .15s;
 }
-.wip-brand { font-weight: 600; color: #111; }
-.wip-stage-badge {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-    padding: 3px 8px; border-radius: 20px;
-    background: #f5f5f5; color: #555;
+.wip-row:hover { background:#f0f0f0; }
+.wip-brand { font-size:13px; font-weight:700; color:#111; }
+.wip-meta  { font-size:11px; color:#999; margin-top:2px; }
+.wip-stage-pill {
+    font-size:10px; font-weight:800; padding:3px 10px;
+    border-radius:20px; letter-spacing:0.5px; white-space:nowrap;
 }
- 
-/* ── 인터랙티브 테이블 필터 ── */
-.filter-chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-.filter-chip {
-    font-size: 11px; font-weight: 600; padding: 4px 12px;
-    border-radius: 20px; border: 1px solid #ddd;
-    background: white; color: #555; cursor: pointer;
-    transition: all .15s;
-}
-.filter-chip:hover { border-color: #111; color: #111; }
-.filter-chip.active { background: #111; color: white; border-color: #111; }
  
 /* ── 탭 ── */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 0; background: transparent; padding: 0;
-    border-bottom: 1px solid #ebebeb; margin-bottom: 20px;
+    gap:0; background:transparent; padding:0;
+    border-bottom:2px solid #e8e8e8; margin-bottom:20px;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 0; font-weight: 600; font-size: 13px;
-    height: 44px; padding: 0 20px;
-    border-bottom: 2px solid transparent;
-    background: transparent !important;
-    color: #aaa !important;
+    border-radius:0; font-weight:700; font-size:13px;
+    height:46px; padding:0 22px;
+    border-bottom:2px solid transparent !important;
+    background:transparent !important; color:#aaa !important;
+    margin-bottom:-2px;
 }
 .stTabs [aria-selected="true"] {
-    border-bottom: 2px solid #111 !important;
-    color: #111 !important;
+    border-bottom:2px solid #111 !important; color:#111 !important;
+}
+ 
+/* ── 차트 래퍼 ── */
+.chart-wrap {
+    background:white; border:1.5px solid #e8e8e8;
+    border-radius:14px; padding:20px;
+}
+ 
+/* ── 마스터 테이블 래퍼 ── */
+.master-wrap {
+    background:white; border:1.5px solid #e8e8e8;
+    border-radius:14px; padding:24px;
+}
+ 
+/* ── 필터 칩 라벨 ── */
+.filter-label {
+    font-size:10px; font-weight:800; letter-spacing:1px;
+    text-transform:uppercase; color:#555; margin-bottom:4px;
+}
+ 
+/* ── 구분선 ── */
+.k-div { border:none; border-top:1px solid #e8e8e8; margin:28px 0; }
+ 
+/* ── 메트릭 override ── */
+[data-testid="stMetricValue"] { font-size:28px !important; font-weight:900 !important; color:#111 !important; }
+[data-testid="stMetricLabel"] { font-size:11px !important; color:#888 !important; font-weight:700 !important; }
+[data-testid="metric-container"] {
+    background:white !important; border:1.5px solid #e8e8e8 !important;
+    border-radius:12px !important; padding:16px !important;
 }
  
 /* ── 데이터프레임 ── */
-.stDataFrame { border-radius: 10px; overflow: hidden; border: 1px solid #ebebeb; }
-[data-testid="stDataFrameResizable"] { border-radius: 10px; }
- 
-/* ── 메트릭 override ── */
-[data-testid="stMetricValue"] { font-size: 26px !important; font-weight: 900 !important; color: #111 !important; }
-[data-testid="stMetricLabel"] { font-size: 11px !important; color: #999 !important; font-weight: 600 !important; }
- 
-/* ── divider ── */
-.k-divider { border: none; border-top: 1px solid #ebebeb; margin: 24px 0; }
- 
-/* ── raw data 테이블 헤더 ── */
-.raw-section {
-    background: white; border: 1px solid #ebebeb; border-radius: 12px;
-    padding: 24px; margin-top: 8px;
+[data-testid="stDataFrameResizable"] thead tr th {
+    background: #f8f8f8 !important;
+    font-weight: 800 !important;
+    font-size: 12px !important;
+    color: #333 !important;
+    border-bottom: 2px solid #e8e8e8 !important;
 }
+ 
+/* ── 스크롤바 ── */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:#f5f5f5; }
+::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
 </style>
 """, unsafe_allow_html=True)
  
@@ -218,7 +194,6 @@ html, body, [class*="css"], .stMarkdown, .stText {
 # ─────────────────────────────────────────────
 SPREADSHEET_ID  = "1e-uxQVNCCF3qS8e3a_S8sZbCx5qj343ycsEfkIF2POA"
 SHEET_NAME      = "Summary"
-# ★ 요청: 오홍석, 유지윤, 전현희, 장근수 만
 FIXED_REVIEWERS = ["오홍석", "유지윤", "전현희", "장근수"]
  
 TRUE_VALUES = {"true", "1", "y", "yes", "완료", "o", "v", "✓", "check", "checked"}
@@ -228,9 +203,19 @@ STAGE_COLORS = {
     "4.구매 완료":      "#3b82f6",
     "3.구매 요청":      "#8b5cf6",
     "2.검토/등록 요청": "#f5a623",
-    "1.리스트업 완료":  "#aaaaaa",
-    "0.미진행":         "#dddddd",
+    "1.리스트업 완료":  "#888888",
+    "0.미진행":         "#cccccc",
     "X.등록 불가":      "#f04452",
+}
+ 
+STAGE_BG = {
+    "5.등록 완료":      "rgba(5,192,114,0.12)",
+    "4.구매 완료":      "rgba(59,130,246,0.12)",
+    "3.구매 요청":      "rgba(139,92,246,0.12)",
+    "2.검토/등록 요청": "rgba(245,166,35,0.12)",
+    "1.리스트업 완료":  "rgba(136,136,136,0.10)",
+    "0.미진행":         "rgba(200,200,200,0.10)",
+    "X.등록 불가":      "rgba(240,68,82,0.12)",
 }
  
 DELAY_CATEGORY_MAP = {
@@ -246,7 +231,7 @@ DELAY_CATEGORY_MAP = {
 CHART_TPL = dict(
     template="plotly_white",
     font=dict(family="Pretendard, -apple-system, sans-serif", size=12, color="#333"),
-    margin=dict(l=16, r=16, t=40, b=16),
+    margin=dict(l=16, r=16, t=44, b=16),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
 )
@@ -288,6 +273,11 @@ def parse_korean_date(v):
         except: pass
     return pd.to_datetime(s, errors="coerce")
  
+def has_date_value(v) -> bool:
+    """등록 요청일(H열) 등 날짜/텍스트가 실제로 채워져 있는지"""
+    s = str(v).strip() if pd.notna(v) else ""
+    return s not in ["", "nan", "NaT", "#REF!", "-", "None"]
+ 
 def safe_rate(num, den) -> float:
     return round((num / den) * 100, 1) if den and den > 0 else 0.0
  
@@ -322,6 +312,7 @@ def _build_df(values: list) -> pd.DataFrame:
         (df_raw["등록 완료일"].astype(str).str.strip() != "#REF!")
     ].copy().reset_index(drop=True)
  
+    # 날짜
     df["등록완료일_dt"] = df["등록 완료일"].apply(parse_korean_date)
     df["등록요청일_dt"] = df["등록 요청일"].apply(parse_korean_date)
  
@@ -338,15 +329,36 @@ def _build_df(values: list) -> pd.DataFrame:
     df["리드타임"] = (df["등록완료일_dt"] - df["등록요청일_dt"]).dt.days
     df["리드타임"] = df["리드타임"].where((df["리드타임"] >= 0) & (df["리드타임"] <= 180))
  
-    for src, dst in [
-        ("리스트업 완료",              "bool_listed"),
-        ("검토 및 등록 요청 완료",      "bool_request_done"),
-        ("상품 구매 요청",              "bool_purchase_req"),
-        ("상품 구매 완료",              "bool_purchase_done"),
-        ("등록 완료 (앱 노출 시 체크)", "bool_reg_done"),
-    ]:
+    # 불리언 컬럼
+    BOOL_MAP = [
+        ("리스트업 완료",              "bool_listed"),         # D열
+        ("검토 및 등록 요청 완료",      "bool_request_done"),   # E열
+        ("상품 구매 요청",              "bool_purchase_req"),   # F열
+        ("상품 구매 완료",              "bool_purchase_done"),  # G열
+        ("등록 완료 (앱 노출 시 체크)", "bool_reg_done"),       # I열
+    ]
+    for src, dst in BOOL_MAP:
         df[dst] = df[src].apply(parse_bool) if src in df.columns else False
  
+    # H열(등록 요청일) 기입 여부
+    df["bool_h_filled"] = df["등록 요청일"].apply(has_date_value)
+ 
+    # ★ 등록 진행중:
+    #   E열(검토 및 등록 요청 완료)=True AND H열(등록요청일) 기입 AND I열(등록완료)=False
+    df["is_reg_wip"] = (
+        df["bool_request_done"] &
+        df["bool_h_filled"] &
+        (~df["bool_reg_done"])
+    )
+ 
+    # ★ 검토 진행중:
+    #   D열(리스트업 완료)=True AND E열(검토 및 등록 요청 완료)=False
+    df["is_rev_wip"] = (
+        df["bool_listed"] &
+        (~df["bool_request_done"])
+    )
+ 
+    # 국내/해외
     def classify_country(v):
         s = str(v).strip() if pd.notna(v) else ""
         if "국내" in s: return "국내"
@@ -390,25 +402,23 @@ def preprocess_gsheet(_cache_key: str, values: list) -> pd.DataFrame:
 # ─────────────────────────────────────────────
 def render_sidebar(df: pd.DataFrame):
     with st.sidebar:
-        # 로고
         st.markdown("""
-        <div style='padding:20px 16px 12px 16px;border-bottom:1px solid #222;'>
-          <div style='font-size:20px;font-weight:900;color:white;letter-spacing:-0.5px;'>
-            OPS<span style='color:#ccff00;'>·</span>INTEL
+        <div style='padding:20px 16px 14px;border-bottom:1px solid #1e1e1e;'>
+          <div style='font-size:22px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;'>
+            OPS<em style='font-style:normal;color:#d4ff00;'>·</em>INTEL
           </div>
-          <div style='font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;'>
+          <div style='font-size:9px;color:#444;margin-top:4px;letter-spacing:2px;font-weight:700;'>
             1P PRODUCT REGISTRATION
           </div>
         </div>
         """, unsafe_allow_html=True)
  
-        # 동기화
-        st.markdown("<div style='padding:12px 0 6px 0;'>", unsafe_allow_html=True)
+        st.markdown("<div style='padding:14px 0 6px;'>", unsafe_allow_html=True)
         if st.button("↻  구글 시트 동기화", use_container_width=True, type="primary"):
             with st.spinner("연결 중..."):
                 vals, err = load_from_gsheet()
             if err:
-                st.error(f"연결 실패\n{err}")
+                st.error(f"연결 실패: {err}")
             else:
                 preprocess_gsheet.clear()
                 ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -423,13 +433,16 @@ def render_sidebar(df: pd.DataFrame):
  
         if "gsheet_fetched_at" in st.session_state:
             st.markdown(
-                f"<div style='font-size:10px;color:#555;text-align:center;padding:4px 0;'>"
+                f"<div style='font-size:10px;color:#444;text-align:center;padding:5px 0;'>"
                 f"Last sync · {st.session_state['gsheet_fetched_at']}</div>",
                 unsafe_allow_html=True
             )
  
-        st.markdown("<p style='color:#444;font-size:10px;margin:10px 0 3px 0;'>보조 — XLSX 업로드</p>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            "<p style='color:#3a3a3a;font-size:10px;margin:12px 0 3px;font-weight:700;letter-spacing:0.5px;'>"
+            "보조 — XLSX 업로드</p>",
+            unsafe_allow_html=True
+        )
         uploaded = st.file_uploader("", type=["xlsx"], label_visibility="collapsed")
         if uploaded:
             preprocess_bytes.clear()
@@ -438,46 +451,42 @@ def render_sidebar(df: pd.DataFrame):
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
  
-        src = st.session_state.get("data_source", "none")
-        label = {
-            "gsheet": "● Google Sheet",
-            "xlsx":   "● Excel 파일",
-        }.get(src, "● 연결 없음")
-        color = {"gsheet": "#ccff00", "xlsx": "#f5a623"}.get(src, "#555")
+        src   = st.session_state.get("data_source", "none")
+        label = {"gsheet": "● Google Sheet", "xlsx": "● Excel 파일"}.get(src, "● 연결 없음")
+        color = {"gsheet": "#d4ff00", "xlsx": "#f5a623"}.get(src, "#444")
         st.markdown(
-            f"<div style='font-size:11px;color:{color};text-align:center;padding:4px 0 12px;'>{label}</div>",
+            f"<div style='font-size:11px;color:{color};text-align:center;padding:4px 0 12px;font-weight:700;'>"
+            f"{label}</div>",
             unsafe_allow_html=True
         )
  
-        # ── 필터 ──
-        st.markdown("<div style='border-top:1px solid #222;padding-top:14px;'>", unsafe_allow_html=True)
-        st.markdown("<p style='color:#555;font-size:10px;letter-spacing:1px;font-weight:700;'>FILTERS</p>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            "<div style='border-top:1px solid #1e1e1e;padding:14px 0 0;'>"
+            "<p style='color:#3a3a3a;font-size:9px;letter-spacing:2px;font-weight:800;margin-bottom:12px;'>"
+            "FILTERS</p>",
+            unsafe_allow_html=True
+        )
  
-        # ★ 검토자 — 4명만
-        avail_rev   = [r for r in FIXED_REVIEWERS if r in df["검토자_정제"].unique()]
-        f_rev       = st.multiselect("검토자", options=FIXED_REVIEWERS,
-                                      default=avail_rev)
+        avail_rev = [r for r in FIXED_REVIEWERS if r in df["검토자_정제"].unique()]
+        f_rev     = st.multiselect("검토자", options=FIXED_REVIEWERS, default=avail_rev)
  
         country_opts = sorted(df["국내해외"].unique().tolist())
         f_country    = st.multiselect("국내 / 해외", options=country_opts, default=country_opts)
  
-        # 연도: 전체 KPI는 24~26, 필터는 연도 선택 그대로
-        year_opts    = sorted([y for y in df["년도"].dropna().unique().tolist()])
-        f_year       = st.multiselect("분석 연도", options=year_opts, default=year_opts)
+        year_opts = sorted([y for y in df["년도"].dropna().unique().tolist()])
+        f_year    = st.multiselect("분석 연도", options=year_opts, default=year_opts)
  
-        stage_opts   = sorted(df["현재단계"].unique().tolist())
-        f_stage      = st.multiselect("진행 단계", options=stage_opts, default=stage_opts)
+        stage_opts = sorted(df["현재단계"].unique().tolist())
+        f_stage    = st.multiselect("진행 단계", options=stage_opts, default=stage_opts)
  
-        f_delay      = st.multiselect("지연 여부", options=["정상", "지연"], default=["정상", "지연"])
-        keyword      = st.text_input("브랜드 / 비고 검색", placeholder="Jellycat…")
+        f_delay = st.multiselect("지연 여부", options=["정상", "지연"], default=["정상", "지연"])
+        keyword = st.text_input("브랜드 / 비고 검색", placeholder="Jellycat…")
  
         st.markdown("</div>", unsafe_allow_html=True)
- 
         st.markdown(
-            f"<div style='border-top:1px solid #222;padding-top:12px;"
-            f"font-size:10px;color:#444;text-align:center;'>"
-            f"Rows loaded · {len(df):,}<br>{datetime.now().strftime('%Y-%m-%d')}</div>",
+            f"<div style='border-top:1px solid #1e1e1e;padding:10px 0 0;"
+            f"font-size:10px;color:#333;text-align:center;'>"
+            f"Rows · {len(df):,} &nbsp;|&nbsp; {datetime.now().strftime('%Y-%m-%d')}</div>",
             unsafe_allow_html=True
         )
  
@@ -491,23 +500,24 @@ def render_landing():
     with col:
         st.markdown("""
         <div style='text-align:center;padding:100px 0 32px 0;'>
-          <div style='font-size:48px;font-weight:900;letter-spacing:-2px;color:#111;'>
-            OPS<span style='color:#ccff00;background:#111;padding:0 6px;border-radius:4px;'>·</span>INTEL
+          <div style='font-size:52px;font-weight:900;letter-spacing:-2px;color:#111;line-height:1;'>
+            OPS<em style='font-style:normal;background:#111;color:#d4ff00;
+            padding:2px 8px;border-radius:6px;'>·</em>INTEL
           </div>
-          <p style='color:#888;font-size:14px;margin-top:8px;letter-spacing:0.5px;'>
+          <p style='color:#999;font-size:13px;margin-top:12px;letter-spacing:1px;font-weight:600;'>
             1P PRODUCT REGISTRATION · C-LEVEL DASHBOARD
           </p>
         </div>
-        <div style='background:#111;border-radius:16px;padding:28px;'>
-          <p style='color:#ccff00;font-size:11px;font-weight:700;letter-spacing:1.5px;margin:0 0 16px;'>
+        <div style='background:#111;border-radius:16px;padding:30px;'>
+          <p style='color:#d4ff00;font-size:10px;font-weight:800;letter-spacing:2px;margin:0 0 16px;'>
             QUICK START
           </p>
-          <ol style='color:#ccc;line-height:2.4;font-size:14px;margin:0;padding-left:20px;'>
+          <ol style='color:#aaa;line-height:2.4;font-size:14px;margin:0;padding-left:20px;'>
             <li>왼쪽 사이드바 → <b style='color:white;'>↻ 구글 시트 동기화</b> 클릭</li>
             <li>자동으로 실시간 데이터 로드 및 분석 시작</li>
             <li>필터로 검토자 / 연도 / 단계 조정</li>
           </ol>
-          <div style='margin-top:16px;border-top:1px solid #222;padding-top:12px;
+          <div style='margin-top:20px;border-top:1px solid #222;padding-top:14px;
                       font-size:11px;color:#444;'>
             Sheet ID · 1e-uxQVNCCF3qS8e3a_S8sZbCx5qj343ycsEfkIF2POA
           </div>
@@ -515,114 +525,153 @@ def render_landing():
         """, unsafe_allow_html=True)
  
 # ─────────────────────────────────────────────
-# 7. DASHBOARD
+# 7. WIP 상세 패널 렌더
 # ─────────────────────────────────────────────
-def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: str):
+def render_wip_panel(df_kpi: pd.DataFrame):
     """
-    df_filtered : 사이드바 필터 적용된 전체 데이터 (23~26)
-    df_full     : 필터 전 원본 전체 (마스터 시트에서 사용)
+    등록 진행중: E=True & H 기입 & I=False
+    검토 진행중: D=True & E=False
     """
+    reg_wip = df_kpi[df_kpi["is_reg_wip"]].copy()
+    rev_wip = df_kpi[df_kpi["is_rev_wip"]].copy()
  
-    # ★ KPI용: 24년 이후만
+    total_wip = len(reg_wip) + len(rev_wip)
+ 
+    col_kpi, col_detail = st.columns([2, 8])
+ 
+    with col_kpi:
+        st.markdown(f"""
+        <div class='kpi-card' style='--accent:#f5a623; height:100%;'>
+          <div class='kpi-tag'>진행 중 WIP</div>
+          <div class='kpi-num'>{total_wip:,}<span class='kpi-num-unit'>건</span></div>
+          <div style='margin-top:12px;'>
+            <div style='display:flex;justify-content:space-between;align-items:center;
+                        background:#fff9f0;border-radius:8px;padding:8px 12px;margin-bottom:6px;'>
+              <span style='font-size:11px;font-weight:700;color:#f5a623;'>등록 진행중</span>
+              <span style='font-size:20px;font-weight:900;color:#f5a623;'>{len(reg_wip)}</span>
+            </div>
+            <div style='display:flex;justify-content:space-between;align-items:center;
+                        background:#f0f7ff;border-radius:8px;padding:8px 12px;'>
+              <span style='font-size:11px;font-weight:700;color:#3b82f6;'>검토 진행중</span>
+              <span style='font-size:20px;font-weight:900;color:#3b82f6;'>{len(rev_wip)}</span>
+            </div>
+          </div>
+          <div class='kpi-sub' style='margin-top:10px;'>등록완료·불가 제외</div>
+        </div>
+        """, unsafe_allow_html=True)
+ 
+    with col_detail:
+        tab_r, tab_v = st.tabs([
+            f"🟠 등록 진행중 ({len(reg_wip)}건) — E열 ✓ · H열 기입 · I열 미체크",
+            f"🔵 검토 진행중 ({len(rev_wip)}건) — D열 ✓ · E열 미체크"
+        ])
+ 
+        SHOW_COLS = ["브랜드(영문)", "요청자_정제", "검토자_정제",
+                     "국내해외", "현재단계", "등록 요청일", "리드타임", "비고_text"]
+        COL_RENAME = {
+            "브랜드(영문)": "브랜드", "요청자_정제": "요청자",
+            "검토자_정제": "검토자", "비고_text": "비고",
+        }
+ 
+        def stage_color_map(val):
+            c  = STAGE_COLORS.get(val, "#888")
+            bg = STAGE_BG.get(val, "rgba(200,200,200,0.1)")
+            return f"background-color:{bg};color:{c};font-weight:800;"
+ 
+        with tab_r:
+            if reg_wip.empty:
+                st.success("등록 진행중 브랜드가 없습니다.")
+            else:
+                show = reg_wip[SHOW_COLS].rename(columns=COL_RENAME).sort_values("리드타임", ascending=False)
+                st.dataframe(
+                    show.style.map(stage_color_map, subset=["현재단계"]),
+                    use_container_width=True, hide_index=True, height=260
+                )
+ 
+        with tab_v:
+            if rev_wip.empty:
+                st.success("검토 진행중 브랜드가 없습니다.")
+            else:
+                show = rev_wip[SHOW_COLS].rename(columns=COL_RENAME)
+                st.dataframe(
+                    show.style.map(stage_color_map, subset=["현재단계"]),
+                    use_container_width=True, hide_index=True, height=260
+                )
+ 
+# ─────────────────────────────────────────────
+# 8. DASHBOARD
+# ─────────────────────────────────────────────
+def render_dashboard(df_filtered: pd.DataFrame, source: str):
+ 
+    # KPI 기준: 24~26년
     df_kpi = df_filtered[df_filtered["년도"].isin([2024, 2025, 2026])].copy()
-    # ★ 심화 분석용
+    # 심화 분석 기준: 24년 이후
     df_24  = df_filtered[df_filtered["등록완료일_dt"] >= "2024-01-01"].copy()
  
-    # ── 헤더 바 ──
-    ts_str = st.session_state.get("gsheet_fetched_at", datetime.now().strftime("%Y-%m-%d %H:%M"))
-    src_txt = "Google Sheet · LIVE" if source == "gsheet" else "Excel Upload"
+    # ── 헤더 ──
+    ts  = st.session_state.get("gsheet_fetched_at", datetime.now().strftime("%Y-%m-%d %H:%M"))
+    src = "Google Sheet · LIVE" if source == "gsheet" else "Excel Upload"
     st.markdown(f"""
     <div class='kream-header'>
-      <div class='kream-logo'>OPS<span>·</span>INTEL</div>
-      <div class='kream-header-right'>
-        <span class='header-ts'>{src_txt} · {ts_str}</span>
-        <span class='live-badge'><span class='live-dot'></span>LIVE</span>
+      <div class='kream-logo'>OPS<em>·</em>INTEL</div>
+      <div class='header-meta'>
+        <span>{src} · {ts}</span>
+        <span class='live-pill'>LIVE</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
  
-    # ══════════════════════════════════════════════
-    # SECTION 1 — KPI (24~26 기준)
-    # ══════════════════════════════════════════════
+    # ══════════════════════════════════════════
+    # SECTION 1 — KPI (2024–2026)
+    # ══════════════════════════════════════════
     st.markdown("<div class='sec-title'>종합 핵심 운영 지표 · 2024–2026</div>", unsafe_allow_html=True)
  
-    total_kpi    = len(df_kpi)
-    reg_done_kpi = int(df_kpi["bool_reg_done"].sum())
-    reg_rate_kpi = safe_rate(reg_done_kpi, total_kpi)
-    lt_avg_kpi   = df_kpi["리드타임"].mean()
-    lt_med_kpi   = df_kpi["리드타임"].median()
-    delayed_kpi  = int((df_kpi["지연여부"] == "지연").sum())
+    total_k    = len(df_kpi)
+    reg_done_k = int(df_kpi["bool_reg_done"].sum())
+    lt_avg_k   = df_kpi["리드타임"].mean()
+    lt_med_k   = df_kpi["리드타임"].median()
+    delayed_k  = int((df_kpi["지연여부"] == "지연").sum())
+    reg_rate_k = safe_rate(reg_done_k, total_k)
+    delay_rate_k = safe_rate(delayed_k, total_k)
  
-    # ★ WIP: 등록완료도 아니고 등록불가도 아닌 것
-    wip_df = df_kpi[
-        (~df_kpi["bool_reg_done"]) &
-        (df_kpi["현재단계"] != "X.등록 불가")
-    ].copy()
-    wip_cnt = len(wip_df)
+    k1, k2, k3, k4, k5 = st.columns(5)
  
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
- 
-    def kpi_card(col, tag, num, unit, sub, accent, num_sm=False):
-        sm = "kpi-num-sm" if num_sm else ""
+    def kcard(col, tag, num, unit, sub, accent, badge_txt="", badge_color="#111"):
+        badge_html = f"<div class='kpi-badge' style='background:{badge_color}22;color:{badge_color};'>{badge_txt}</div>" if badge_txt else ""
         col.markdown(f"""
-        <div class='kpi-wrap {accent}'>
+        <div class='kpi-card' style='--accent:{accent};'>
           <div class='kpi-tag'>{tag}</div>
-          <div class='kpi-num {sm}'>{num}<span class='kpi-unit'>{unit}</span></div>
+          <div class='kpi-num'>{num}<span class='kpi-num-unit'>{unit}</span></div>
+          {badge_html}
           <div class='kpi-sub'>{sub}</div>
         </div>
         """, unsafe_allow_html=True)
  
-    kpi_card(c1, "전체 분석 건수", f"{total_kpi:,}", "건",
-             "2024–2026 기준", "kpi-accent-black")
-    kpi_card(c2, "최종 등록 완료", f"{reg_done_kpi:,}", "건",
-             f"등록률 {reg_rate_kpi}%", "kpi-accent-green")
-    kpi_card(c3, "평균 리드타임",
-             f"{lt_avg_kpi:.1f}" if pd.notna(lt_avg_kpi) else "N/A", "일",
-             f"중앙값 {lt_med_kpi:.0f}일" if pd.notna(lt_med_kpi) else "", "kpi-accent-purple")
-    kpi_card(c4, "지연 발생 건수", f"{delayed_kpi:,}", "건",
-             f"지연률 {safe_rate(delayed_kpi, total_kpi)}%", "kpi-accent-red")
+    kcard(k1, "전체 분석 건수",  f"{total_k:,}",    "건",
+          "2024–2026 기준", "#111")
+    kcard(k2, "최종 등록 완료",  f"{reg_done_k:,}", "건",
+          "누적 등록 성공",  "#05c072",
+          f"등록률 {reg_rate_k}%", "#05c072")
+    kcard(k3, "평균 리드타임",
+          f"{lt_avg_k:.1f}" if pd.notna(lt_avg_k) else "N/A", "일",
+          f"중앙값 {lt_med_k:.0f}일" if pd.notna(lt_med_k) else "", "#8b5cf6")
+    kcard(k4, "지연 발생 건수",  f"{delayed_k:,}",  "건",
+          "지연 사유 기입 건",  "#f04452",
+          f"지연률 {delay_rate_k}%", "#f04452")
+    kcard(k5, "24년+ 분석 건수", f"{len(df_24):,}", "건",
+          "심화 분석 대상", "#d4ff00")
  
-    # ★ WIP 카드 — expander로 진행중 브랜드 목록 표시
-    with c5:
-        st.markdown(f"""
-        <div class='kpi-wrap kpi-accent-yellow'>
-          <div class='kpi-tag'>진행 중 WIP</div>
-          <div class='kpi-num'>{wip_cnt:,}<span class='kpi-unit'>건</span></div>
-          <div class='kpi-sub'>등록완료·불가 제외</div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
  
-    with c6:
-        kpi_card(c6, "24년+ 분석 건수", f"{len(df_24):,}", "건",
-                 "심화 분석 대상", "kpi-accent-lime")
+    # ── WIP 상세 패널 ──
+    st.markdown("<div class='sec-title-accent'>진행 중 브랜드 현황 (WIP)</div>", unsafe_allow_html=True)
+    render_wip_panel(df_kpi)
  
-    # ★ WIP 브랜드 상세 — 카드 아래 expander
-    with st.expander(f"📋 진행 중 브랜드 상세 목록 ({wip_cnt}건) — 클릭해서 펼치기"):
-        if wip_cnt == 0:
-            st.write("진행 중인 브랜드가 없습니다.")
-        else:
-            wip_show = wip_df[["브랜드(영문)", "요청자_정제", "검토자_정제",
-                                "국내해외", "현재단계", "리드타임", "비고_text"]].copy()
-            wip_show = wip_show.rename(columns={
-                "브랜드(영문)": "브랜드", "요청자_정제": "요청자",
-                "검토자_정제": "검토자", "비고_text": "비고"
-            }).sort_values("현재단계")
+    st.markdown("<hr class='k-div'>", unsafe_allow_html=True)
  
-            # 단계별 색상 표시
-            def color_stage(val):
-                c = STAGE_COLORS.get(val, "#eee")
-                return f"background-color: {c}22; color: {c}; font-weight:600;"
- 
-            st.dataframe(
-                wip_show.style.map(color_stage, subset=["현재단계"]),
-                use_container_width=True, hide_index=True, height=340
-            )
- 
-    st.markdown("<hr class='k-divider'>", unsafe_allow_html=True)
- 
-    # ══════════════════════════════════════════════
-    # SECTION 2 — 파이프라인 (24~26)
-    # ══════════════════════════════════════════════
+    # ══════════════════════════════════════════
+    # SECTION 2 — 파이프라인 (2024–2026)
+    # ══════════════════════════════════════════
     st.markdown("<div class='sec-title'>등록 파이프라인 · 2024–2026</div>", unsafe_allow_html=True)
  
     p1, p2, p3 = st.columns(3)
@@ -630,28 +679,27 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
     with p1:
         fig = go.Figure(go.Funnel(
             y=["리스트업 완료", "검토/등록 요청", "구매 완료", "최종 등록"],
-            x=[int(df_kpi["bool_listed"].sum()),
-               int(df_kpi["bool_request_done"].sum()),
-               int(df_kpi["bool_purchase_done"].sum()),
-               int(df_kpi["bool_reg_done"].sum())],
+            x=[int(df_kpi["bool_listed"].sum()), int(df_kpi["bool_request_done"].sum()),
+               int(df_kpi["bool_purchase_done"].sum()), int(df_kpi["bool_reg_done"].sum())],
             textinfo="value+percent previous",
-            textfont=dict(size=12, color="#333"),
-            marker=dict(color=["#333", "#555", "#888", "#05c072"]),
+            textfont=dict(size=13, color="#fff"),
+            marker=dict(color=["#555", "#777", "#999", "#05c072"]),
             connector=dict(line=dict(color="#eee", width=2)),
         ))
-        fig.update_layout(**CHART_TPL, title="등록 전환 Funnel", height=300)
+        fig.update_layout(**CHART_TPL, title="<b>등록 전환 Funnel</b>", height=320)
         st.plotly_chart(fig, use_container_width=True)
  
     with p2:
         sc = df_kpi["현재단계"].value_counts().reset_index()
         sc.columns = ["단계", "건수"]
         fig = go.Figure(go.Pie(
-            labels=sc["단계"], values=sc["건수"], hole=0.6,
-            marker=dict(colors=[STAGE_COLORS.get(s, "#ccc") for s in sc["단계"]]),
-            textinfo="percent", textfont=dict(size=11),
+            labels=sc["단계"], values=sc["건수"], hole=0.62,
+            marker=dict(colors=[STAGE_COLORS.get(s, "#ccc") for s in sc["단계"]],
+                        line=dict(color="#fff", width=2)),
+            textinfo="percent", textfont=dict(size=12, color="#333"),
         ))
-        fig.update_layout(**CHART_TPL, title="단계별 분포", height=300,
-                          legend=dict(orientation="v", x=1.02, y=0.5, font=dict(size=10)))
+        fig.update_layout(**CHART_TPL, title="<b>단계별 분포</b>", height=320,
+                          legend=dict(orientation="v", x=1.02, y=0.5, font=dict(size=11)))
         st.plotly_chart(fig, use_container_width=True)
  
     with p3:
@@ -659,16 +707,16 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
                  .groupby(["국내해외", "현재단계"]).size().reset_index(name="건수"))
         fig = px.bar(cross, x="국내해외", y="건수", color="현재단계",
                      color_discrete_map=STAGE_COLORS, barmode="stack",
-                     title="국내 / 해외별 단계")
-        fig.update_layout(**CHART_TPL, height=300,
-                          legend=dict(orientation="v", x=1.02, y=0.5, font=dict(size=10)))
+                     title="<b>국내 / 해외별 단계</b>")
+        fig.update_layout(**CHART_TPL, height=320,
+                          legend=dict(orientation="v", x=1.02, y=0.5, font=dict(size=11)))
         st.plotly_chart(fig, use_container_width=True)
  
-    st.markdown("<hr class='k-divider'>", unsafe_allow_html=True)
+    st.markdown("<hr class='k-div'>", unsafe_allow_html=True)
  
-    # ══════════════════════════════════════════════
+    # ══════════════════════════════════════════
     # SECTION 3 — 24년+ 심화 분석
-    # ══════════════════════════════════════════════
+    # ══════════════════════════════════════════
     st.markdown("<div class='sec-title'>2024+ 운영 트렌드 심화 분석</div>", unsafe_allow_html=True)
  
     if df_24.empty:
@@ -678,55 +726,54 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
             "시계열 트렌드", "리드타임 Deep-Dive", "지연 분석", "담당자 성과"
         ])
  
-        # ── TAB1 ──
         with tab1:
             view  = st.radio("집계 단위", ["월별", "주차별", "분기별"], horizontal=True)
             g_col = {"월별": "년월", "주차별": "년주차", "분기별": "년분기"}[view]
-            ts = df_24.dropna(subset=[g_col]).groupby(g_col).agg(
+            ts_df = df_24.dropna(subset=[g_col]).groupby(g_col).agg(
                 등록완료=("bool_reg_done", "sum"),
                 전체건수=("bool_reg_done", "count"),
                 평균리드타임=("리드타임", "mean"),
             ).reset_index()
-            ts.columns = ["기간", "등록완료", "전체건수", "평균리드타임"]
-            ts["등록률"] = (ts["등록완료"] / ts["전체건수"] * 100).round(1)
+            ts_df.columns = ["기간", "등록완료", "전체건수", "평균리드타임"]
+            ts_df["등록률"] = (ts_df["등록완료"] / ts_df["전체건수"] * 100).round(1)
  
             fig = make_subplots(rows=2, cols=1,
                                 subplot_titles=("등록 완료 vs 전체 건수", "등록률 (%)"),
                                 vertical_spacing=0.14, shared_xaxes=True)
-            fig.add_trace(go.Bar(x=ts["기간"], y=ts["전체건수"],
+            fig.add_trace(go.Bar(x=ts_df["기간"], y=ts_df["전체건수"],
                                   name="전체", marker_color="#ebebeb"), row=1, col=1)
-            fig.add_trace(go.Bar(x=ts["기간"], y=ts["등록완료"],
+            fig.add_trace(go.Bar(x=ts_df["기간"], y=ts_df["등록완료"],
                                   name="등록완료", marker_color="#111"), row=1, col=1)
-            fig.add_trace(go.Scatter(x=ts["기간"], y=ts["등록률"],
-                                      name="등록률%", mode="lines+markers",
+            fig.add_trace(go.Scatter(x=ts_df["기간"], y=ts_df["등록률"],
+                                      name="등록률", mode="lines+markers",
                                       line=dict(color="#05c072", width=2.5),
+                                      marker=dict(size=6),
                                       fill="tozeroy",
                                       fillcolor="rgba(5,192,114,0.08)"),
                           row=2, col=1)
-            fig.update_layout(**CHART_TPL, height=440, barmode="overlay",
-                               title_text=f"{view} 등록 현황 (2024+)")
-            fig.update_yaxes(showgrid=True, gridcolor="#f5f5f5")
+            fig.update_layout(**CHART_TPL, height=460, barmode="overlay",
+                               title_text=f"<b>{view} 등록 현황 (2024+)</b>")
+            fig.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
             st.plotly_chart(fig, use_container_width=True)
             with st.expander("상세 수치 테이블"):
-                st.dataframe(ts.style.format({
+                st.dataframe(ts_df.style.format({
                     "등록완료": "{:,}", "전체건수": "{:,}",
                     "평균리드타임": "{:.1f}", "등록률": "{:.1f}%"
                 }), use_container_width=True, hide_index=True)
  
-        # ── TAB2 ──
         with tab2:
             lt = df_24[df_24["리드타임"].notna()].copy()
             r1, r2 = st.columns(2)
             with r1:
                 fig = px.box(lt, x="국내해외", y="리드타임", color="국내해외",
-                             title="국내/해외 리드타임 분포", points="outliers",
+                             title="<b>국내/해외 리드타임 분포</b>", points="outliers",
                              color_discrete_map={"국내": "#111", "해외": "#888", "미입력": "#ccc"})
                 fig.update_layout(**CHART_TPL, height=340, showlegend=False)
                 st.plotly_chart(fig, use_container_width=True)
             with r2:
                 fig = px.histogram(lt, x="리드타임", color="국내해외",
                                    nbins=30, barmode="overlay", opacity=0.75,
-                                   title="리드타임 빈도 분포",
+                                   title="<b>리드타임 빈도 분포</b>",
                                    color_discrete_map={"국내": "#111", "해외": "#888", "미입력": "#ccc"})
                 fig.update_layout(**CHART_TPL, height=340)
                 st.plotly_chart(fig, use_container_width=True)
@@ -737,27 +784,27 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
             st.dataframe(stat.style.format({
                 "평균": "{:.1f}일", "중앙값": "{:.1f}일",
                 "최솟값": "{:.0f}일", "최댓값": "{:.0f}일"
-            }), use_container_width=True, hide_index=True)
+            }).set_properties(**{"font-weight": "600"}),
+            use_container_width=True, hide_index=True)
  
             def lt_bucket(d):
-                if pd.isna(d): return "데이터 없음"
-                if d <= 7:    return "① 1주 이내"
-                if d <= 14:   return "② 2주 이내"
-                if d <= 30:   return "③ 1개월 이내"
+                if pd.isna(d):  return "데이터 없음"
+                if d <= 7:      return "① 1주 이내"
+                if d <= 14:     return "② 2주 이내"
+                if d <= 30:     return "③ 1개월 이내"
                 return "④ 1개월 초과"
             lt["리드타임구간"] = lt["리드타임"].apply(lt_bucket)
             bkt = lt.groupby(["국내해외", "리드타임구간"]).size().reset_index(name="건수")
             fig = px.bar(bkt, x="리드타임구간", y="건수", color="국내해외",
-                         barmode="group", title="리드타임 구간별 건수",
+                         barmode="group", title="<b>리드타임 구간별 건수</b>",
                          color_discrete_map={"국내": "#111", "해외": "#888", "미입력": "#ccc"})
             fig.update_layout(**CHART_TPL, height=300)
             st.plotly_chart(fig, use_container_width=True)
  
-        # ── TAB3 ──
         with tab3:
             ddf = df_24[df_24["지연여부"] == "지연"]
             ca, cb, cc = st.columns(3)
-            ca.metric("지연 건수", f"{len(ddf):,}건")
+            ca.metric("지연 건수", f"{len(ddf):,}건",  delta=None)
             cb.metric("정상 건수", f"{len(df_24)-len(ddf):,}건")
             cc.metric("지연률",    f"{safe_rate(len(ddf), len(df_24))}%")
  
@@ -767,16 +814,17 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
                 dc.columns = ["분류", "건수"]
                 dc = dc[dc["분류"] != "없음"]
                 fig = px.bar(dc, y="분류", x="건수", orientation="h",
-                             title="지연 사유 유형별 건수",
-                             color_discrete_sequence=["#111"])
-                fig.update_layout(**CHART_TPL, height=320)
+                             title="<b>지연 사유 유형별 건수</b>",
+                             color="건수",
+                             color_continuous_scale=["#f0f0f0", "#f04452"])
+                fig.update_layout(**CHART_TPL, height=340)
                 st.plotly_chart(fig, use_container_width=True)
             with d2:
                 dm = df_24.groupby(["년월", "지연여부"]).size().reset_index(name="건수")
                 fig = px.bar(dm, x="년월", y="건수", color="지연여부",
-                             barmode="stack", title="월별 지연 / 정상 현황",
+                             barmode="stack", title="<b>월별 지연 / 정상 현황</b>",
                              color_discrete_map={"정상": "#05c072", "지연": "#f04452"})
-                fig.update_layout(**CHART_TPL, height=320)
+                fig.update_layout(**CHART_TPL, height=340)
                 st.plotly_chart(fig, use_container_width=True)
  
             if len(ddf) > 0:
@@ -786,7 +834,6 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
                     st.dataframe(ddf[scols].sort_values("리드타임", ascending=False),
                                  use_container_width=True, hide_index=True)
  
-        # ── TAB4 ──
         with tab4:
             pr = df_24.groupby("검토자_정제").agg(
                 담당건수=("bool_reg_done", "count"),
@@ -804,12 +851,13 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
                 ("담당건수", "#111"), ("등록률", "#05c072"), ("평균리드타임", "#f5a623")
             ]):
                 fig.add_trace(go.Bar(
-                    x=pr["검토자_정제"], y=pr[col_].round(1),
-                    name=col_, marker_color=color,
-                    text=pr[col_].round(1), textposition="auto",
+                    x=pr["검토자_정제"], y=pr[col_].round(1), name=col_,
+                    marker_color=color,
+                    text=pr[col_].round(1), textposition="outside",
+                    textfont=dict(size=12, color="#333"),
                 ), row=1, col=i+1)
-            fig.update_layout(**CHART_TPL, height=320, showlegend=False,
-                               title_text="검토자별 운영 성과 (2024+)")
+            fig.update_layout(**CHART_TPL, height=340, showlegend=False,
+                               title_text="<b>검토자별 운영 성과 (2024+)</b>")
             st.plotly_chart(fig, use_container_width=True)
  
             preq = df_24.groupby("요청자_정제").agg(
@@ -819,17 +867,19 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
             preq["등록률"] = (preq["등록완료"] / preq["요청건수"] * 100).round(1)
             preq = preq.sort_values("요청건수", ascending=False).head(15)
             fig = px.bar(preq, x="요청자_정제", y="요청건수",
-                         color="등록률", color_continuous_scale=["#eee", "#111"],
-                         title="요청자별 등록 요청 건수 TOP 15 (2024+)", text="요청건수")
-            fig.update_layout(**CHART_TPL, height=320)
+                         color="등록률",
+                         color_continuous_scale=["#e8e8e8", "#111"],
+                         title="<b>요청자별 등록 요청 건수 TOP 15 (2024+)</b>",
+                         text="요청건수")
+            fig.update_layout(**CHART_TPL, height=340)
             st.plotly_chart(fig, use_container_width=True)
  
-    st.markdown("<hr class='k-divider'>", unsafe_allow_html=True)
+    st.markdown("<hr class='k-div'>", unsafe_allow_html=True)
  
-    # ══════════════════════════════════════════════
-    # SECTION 4 — YoY
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec-title'>연도별 YoY 성과 비교 · 2023–2026</div>", unsafe_allow_html=True)
+    # ══════════════════════════════════════════
+    # SECTION 4 — YoY (2023–2026 전체)
+    # ══════════════════════════════════════════
+    st.markdown("<div class='sec-title-muted'>연도별 YoY 성과 비교 · 2023–2026</div>", unsafe_allow_html=True)
  
     yoy = df_filtered.groupby("년도").agg(
         전체건수=("bool_reg_done", "count"),
@@ -845,22 +895,31 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
     with y1:
         fig = go.Figure()
         fig.add_trace(go.Bar(x=yoy["년도"], y=yoy["전체건수"],
-                              name="전체", marker_color="#ebebeb"))
+                              name="전체", marker_color="#e8e8e8",
+                              text=yoy["전체건수"], textposition="outside"))
         fig.add_trace(go.Bar(x=yoy["년도"], y=yoy["등록완료"],
-                              name="등록완료", marker_color="#111"))
-        fig.update_layout(**CHART_TPL, title="연도별 전체 vs 등록완료",
-                          barmode="overlay", height=300)
+                              name="등록완료", marker_color="#111",
+                              text=yoy["등록완료"], textposition="outside"))
+        fig.update_layout(**CHART_TPL, title="<b>연도별 전체 vs 등록완료</b>",
+                          barmode="overlay", height=320)
         st.plotly_chart(fig, use_container_width=True)
     with y2:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Bar(x=yoy["년도"], y=yoy["평균리드타임"].round(1),
-                              name="리드타임(일)", marker_color="#555"), secondary_y=False)
+                              name="리드타임(일)", marker_color="#555",
+                              text=yoy["평균리드타임"].round(1),
+                              textposition="outside"), secondary_y=False)
         fig.add_trace(go.Scatter(x=yoy["년도"], y=yoy["지연률"], name="지연률(%)",
-                                  mode="lines+markers",
-                                  line=dict(color="#f04452", width=2.5)), secondary_y=True)
-        fig.update_layout(**CHART_TPL, title="연도별 리드타임 vs 지연률", height=300)
-        fig.update_yaxes(title_text="리드타임(일)", secondary_y=False)
-        fig.update_yaxes(title_text="지연률(%)",    secondary_y=True)
+                                  mode="lines+markers+text",
+                                  text=yoy["지연률"].astype(str) + "%",
+                                  textposition="top center",
+                                  textfont=dict(color="#f04452", size=12),
+                                  line=dict(color="#f04452", width=2.5),
+                                  marker=dict(size=8, color="#f04452")),
+                      secondary_y=True)
+        fig.update_layout(**CHART_TPL, title="<b>연도별 리드타임 vs 지연률</b>", height=320)
+        fig.update_yaxes(title_text="리드타임(일)", secondary_y=False, showgrid=True, gridcolor="#f0f0f0")
+        fig.update_yaxes(title_text="지연률(%)",    secondary_y=True,  showgrid=False)
         st.plotly_chart(fig, use_container_width=True)
  
     st.dataframe(
@@ -868,19 +927,19 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
            .format({"전체건수": "{:,}", "등록완료": "{:,}", "지연건수": "{:,}",
                     "평균리드타임": "{:.1f}일", "등록률": "{:.1f}%", "지연률": "{:.1f}%"})
            .background_gradient(subset=["등록률"], cmap="Greens")
-           .background_gradient(subset=["지연률"], cmap="Reds"),
+           .background_gradient(subset=["지연률"], cmap="Reds")
+           .set_properties(**{"font-weight": "600", "font-size": "13px"}),
         use_container_width=True, hide_index=True
     )
  
-    st.markdown("<hr class='k-divider'>", unsafe_allow_html=True)
+    st.markdown("<hr class='k-div'>", unsafe_allow_html=True)
  
-    # ══════════════════════════════════════════════
-    # SECTION 5 — 마스터 트래킹 (23~26 전체, 클릭 필터)
-    # ══════════════════════════════════════════════
-    st.markdown("<div class='sec-title'>마스터 업무 트래킹 · 2023–2026 전체</div>", unsafe_allow_html=True)
-    st.markdown("<div class='raw-section'>", unsafe_allow_html=True)
+    # ══════════════════════════════════════════
+    # SECTION 5 — 마스터 트래킹 (2023–2026, 컬럼 필터)
+    # ══════════════════════════════════════════
+    st.markdown("<div class='sec-title-muted'>마스터 업무 트래킹 · 2023–2026 전체 Raw</div>",
+                unsafe_allow_html=True)
  
-    # 트래킹 시트는 df_filtered (사이드바 필터 적용) 사용
     col_show = ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외",
                 "현재단계", "지연분류", "리드타임", "년월", "비고_text"]
     df_master = df_filtered[col_show].copy().rename(columns={
@@ -888,20 +947,28 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
         "비고_text": "비고", "년월": "등록년월"
     })
  
-    # ── ★ 인터랙티브 컬럼 필터 (Streamlit selectbox 방식) ──
-    st.markdown("**컬럼별 필터**", unsafe_allow_html=False)
+    # ── 컬럼별 인터랙티브 필터 ──
+    st.markdown("<div style='background:white;border:1.5px solid #e8e8e8;border-radius:14px;padding:20px 24px 24px;'>",
+                unsafe_allow_html=True)
+ 
+    st.markdown(
+        "<p style='font-size:10px;font-weight:800;letter-spacing:1.5px;color:#aaa;"
+        "text-transform:uppercase;margin:0 0 12px;'>Column Filters</p>",
+        unsafe_allow_html=True
+    )
+ 
     fc1, fc2, fc3, fc4, fc5, fc6 = st.columns(6)
  
-    def col_filter(container, label, series, key):
-        opts = ["전체"] + sorted(series.dropna().unique().tolist())
+    def col_sel(container, label, series, key):
+        opts = ["전체"] + sorted([x for x in series.dropna().unique() if str(x).strip() not in ["", "nan"]])
         return container.selectbox(label, options=opts, key=key, index=0)
  
-    sel_rev    = col_filter(fc1, "검토자",   df_master["검토자"],   "mf_rev")
-    sel_req    = col_filter(fc2, "요청자",   df_master["요청자"],   "mf_req")
-    sel_nat    = col_filter(fc3, "국내/해외", df_master["국내해외"], "mf_nat")
-    sel_stage  = col_filter(fc4, "현재단계",  df_master["현재단계"], "mf_stage")
-    sel_delay  = col_filter(fc5, "지연분류",  df_master["지연분류"], "mf_delay")
-    sel_month  = col_filter(fc6, "등록년월",  df_master["등록년월"], "mf_month")
+    sel_rev   = col_sel(fc1, "검토자",   df_master["검토자"],   "mf_rev")
+    sel_req   = col_sel(fc2, "요청자",   df_master["요청자"],   "mf_req")
+    sel_nat   = col_sel(fc3, "국내/해외", df_master["국내해외"], "mf_nat")
+    sel_stage = col_sel(fc4, "현재단계",  df_master["현재단계"], "mf_stage")
+    sel_delay = col_sel(fc5, "지연분류",  df_master["지연분류"], "mf_delay")
+    sel_month = col_sel(fc6, "등록년월",  df_master["등록년월"], "mf_month")
  
     df_view = df_master.copy()
     if sel_rev   != "전체": df_view = df_view[df_view["검토자"]   == sel_rev]
@@ -912,26 +979,34 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
     if sel_month != "전체": df_view = df_view[df_view["등록년월"]  == sel_month]
  
     # 정렬
-    sort_by = st.selectbox("정렬 기준",
-                            ["등록년월 (최신순)", "리드타임 (내림차순)", "현재단계"],
-                            key="master_sort")
-    if sort_by == "등록년월 (최신순)":       df_view = df_view.sort_values("등록년월", ascending=False)
-    elif sort_by == "리드타임 (내림차순)":   df_view = df_view.sort_values("리드타임", ascending=False)
-    else:                                    df_view = df_view.sort_values("현재단계")
+    sc1, sc2, _ = st.columns([2, 2, 6])
+    sort_by = sc1.selectbox("정렬 기준",
+                             ["등록년월 (최신순)", "리드타임 (내림차순)", "현재단계"],
+                             key="master_sort")
+    if sort_by == "등록년월 (최신순)":     df_view = df_view.sort_values("등록년월", ascending=False)
+    elif sort_by == "리드타임 (내림차순)": df_view = df_view.sort_values("리드타임", ascending=False)
+    else:                                  df_view = df_view.sort_values("현재단계")
  
-    st.caption(f"표시: {len(df_view):,}건 / 전체 {len(df_master):,}건")
+    st.caption(f"표시 {len(df_view):,}건 / 전체 {len(df_master):,}건")
  
-    # 단계 컬러맵
-    def stage_color(val):
-        c = STAGE_COLORS.get(val, "#eee")
-        return f"background-color: {c}22; color: {c}; font-weight: 600;"
+    def stage_color_f(val):
+        c  = STAGE_COLORS.get(val, "#888")
+        bg = STAGE_BG.get(val, "rgba(200,200,200,0.1)")
+        return f"background-color:{bg};color:{c};font-weight:800;"
+ 
+    def delay_color_f(val):
+        if val == "없음": return "color:#aaa;"
+        return "color:#f04452;font-weight:700;"
  
     st.dataframe(
-        df_view.style.map(stage_color, subset=["현재단계"]),
-        use_container_width=True, hide_index=True, height=460
+        df_view.style
+               .map(stage_color_f, subset=["현재단계"])
+               .map(delay_color_f, subset=["지연분류"])
+               .set_properties(**{"font-size": "13px"})
+               .format({"리드타임": lambda x: f"{int(x)}일" if pd.notna(x) else "-"}),
+        use_container_width=True, hide_index=True, height=480
     )
  
-    # 다운로드
     csv = df_view.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
         "↓ CSV 다운로드", data=csv,
@@ -942,12 +1017,11 @@ def render_dashboard(df_filtered: pd.DataFrame, df_full: pd.DataFrame, source: s
  
  
 # ─────────────────────────────────────────────
-# 8. MAIN
+# 9. MAIN
 # ─────────────────────────────────────────────
 def main():
     source = st.session_state.get("data_source", "none")
  
-    # 데이터 로드
     if source == "gsheet" and "gsheet_values" in st.session_state:
         cache_key = st.session_state.get("gsheet_fetched_at", "")
         df_full   = preprocess_gsheet(cache_key, st.session_state["gsheet_values"])
@@ -981,10 +1055,8 @@ def main():
             render_landing()
             return
  
-    # 사이드바 필터
     f_rev, f_country, f_year, f_stage, f_delay, keyword = render_sidebar(df_full)
  
-    # 필터 적용
     dff = df_full.copy()
     if f_rev:     dff = dff[dff["검토자_정제"].isin(f_rev)]
     if f_country: dff = dff[dff["국내해외"].isin(f_country)]
@@ -993,9 +1065,8 @@ def main():
     if f_delay:   dff = dff[dff["지연여부"].isin(f_delay)]
     if keyword:   dff = dff[dff.apply(lambda r: keyword.strip().lower() in str(r).lower(), axis=1)]
  
-    render_dashboard(dff, df_full, source)
+    render_dashboard(dff, source)
  
  
 if __name__ == "__main__":
     main()
- 
