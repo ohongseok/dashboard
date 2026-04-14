@@ -13,7 +13,7 @@ import streamlit as st
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P Ops Intelligence",
+    page_title="1P OPS DASHBOARD",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -446,45 +446,50 @@ li[role="option"]:hover {
     margin-right: 6px;
 }
 
-/* ━━━ 추가 폰트/글자 깨짐 방지 패치 ━━━ */
+/* ━━━ 추가 패치: 글씨 깨짐 / 선택창 가독성 ━━━ */
+[data-baseweb="select"] > div,
 [data-baseweb="popover"] *,
 [data-baseweb="menu"] *,
 div[role="listbox"] *,
-li[role="option"] *,
-div[role="option"] * {
+ul[role="listbox"] * {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+[data-baseweb="select"] > div {
+    background: #1a1a1a !important;
+    color: #ffffff !important;
+    border-color: #2d2d2d !important;
+}
+[data-baseweb="tag"],
+[data-baseweb="tag"] * {
     color: #ffffff !important;
 }
-
-[data-testid="stDataFrameResizable"] *,
-[data-testid="stDataFrame"] *,
-.glideDataEditor *,
-.stDataFrame *,
-.stTable * {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    -webkit-font-smoothing: antialiased !important;
-    text-rendering: geometricPrecision !important;
+div[role="listbox"] {
+    background: #171717 !important;
+    border: 1px solid #2d2d2d !important;
 }
-
+div[role="option"],
+li[role="option"] {
+    background: #171717 !important;
+    color: #ffffff !important;
+}
+div[role="option"]:hover,
+li[role="option"]:hover {
+    background: #242424 !important;
+    color: #ffffff !important;
+}
+[data-testid="stDataFrameResizable"] *,
+.glideDataEditor *,
+[data-testid="stDataEditor"] *,
 [data-testid="stMetricValue"],
 [data-testid="stMetricLabel"],
-[data-testid="stMetricDelta"] {
+.js-plotly-plot text,
+.plotly text {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    -webkit-font-smoothing: antialiased !important;
 }
-
-.js-plotly-plot .plotly text,
-.js-plotly-plot .plotly .gtitle,
-.js-plotly-plot .plotly .xtick text,
-.js-plotly-plot .plotly .ytick text,
-.js-plotly-plot .plotly .legendtext {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    shape-rendering: geometricPrecision !important;
-}
-
-section[data-testid="stSidebar"] [data-baseweb="select"] > div,
-section[data-testid="stSidebar"] [data-baseweb="tag"] {
-    min-height: 40px !important;
+[data-testid="stDataFrameResizable"] td,
+[data-testid="stDataFrameResizable"] th,
+.glideDataEditor div {
+    color: #111111 !important;
 }
 
 </style>
@@ -498,7 +503,7 @@ section[data-testid="stSidebar"] [data-baseweb="tag"] {
 SPREADSHEET_ID = "1e-uxQVNCCF3qS8e3a_S8sZbCx5qj343ycsEfkIF2POA"
 SHEET_NAME = "Summary"
 FIXED_REVIEWERS = ["오홍석", "유지윤", "전현희", "장근수"]
-TRUE_VALUES = {"true", "false", "1", "0", "y", "yes", "완료", "o", "v", "✓", "check", "checked", "t", "f"}
+TRUE_VALUES = {"true", "1", "y", "yes", "완료", "o", "v", "✓", "check", "checked"}
 
 STAGE_COLORS = {
     "5.등록 완료": "#05c072",
@@ -621,14 +626,6 @@ def first_valid_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
             return col
     return None
 
-
-def column_by_position(df: pd.DataFrame, pos: int, fallback: str | None = None) -> str:
-    if fallback and fallback in df.columns:
-        return fallback
-    if 0 <= pos < len(df.columns):
-        return df.columns[pos]
-    raise ValueError(f"열 위치 {pos}를 찾지 못했습니다.")
-
 # ─────────────────────────────────────────────────────────────
 # 4. PREPROCESSING
 # ─────────────────────────────────────────────────────────────
@@ -640,26 +637,26 @@ def _build(values: list) -> pd.DataFrame:
             break
 
     raw = pd.DataFrame(values[hi + 1 :], columns=values[hi])
-    raw.columns = [str(c).strip().replace("\n", " ").replace("\r", " ") for c in raw.columns]
+    raw.columns = [str(c).strip() for c in raw.columns]
 
-    brand_col = column_by_position(raw, 0, first_valid_column(raw, ["브랜드(영문)"]))
-    requester_col = column_by_position(raw, 1, first_valid_column(raw, ["요청자"]))
-    reviewer_col = column_by_position(raw, 2, first_valid_column(raw, ["검토자"]))
-    listed_col = column_by_position(raw, 3, first_valid_column(raw, ["리스트업 완료"]))
-    req_done_col = column_by_position(raw, 4, first_valid_column(raw, ["검토 및 등록 요청 완료"]))
-    purchase_req_col = column_by_position(raw, 5, first_valid_column(raw, ["상품 구매 요청"]))
-    purchase_done_col = column_by_position(raw, 6, first_valid_column(raw, ["상품 구매 완료"]))
-    req_date_col = column_by_position(raw, 7, first_valid_column(raw, ["등록 요청일"]))
-    reg_done_col = column_by_position(raw, 8, first_valid_column(raw, ["등록 완료 (앱 노출 시 체크)"]))
-    reg_date_col = column_by_position(raw, 9, first_valid_column(raw, ["등록 완료일"]))
+    brand_col = first_valid_column(raw, ["브랜드(영문)"])
+    requester_col = first_valid_column(raw, ["요청자"])
+    reviewer_col = first_valid_column(raw, ["검토자"])
+
+    if brand_col is None:
+        raise ValueError("'브랜드(영문)' 컬럼을 찾지 못했습니다.")
+    if requester_col is None:
+        raise ValueError("'요청자' 컬럼을 찾지 못했습니다.")
+    if reviewer_col is None:
+        raise ValueError("'검토자' 컬럼을 찾지 못했습니다.")
 
     df = raw[
         raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
-        & (raw[reg_date_col].astype(str).str.strip() != "#REF!")
+        & (raw["등록 완료일"].astype(str).str.strip() != "#REF!")
     ].copy().reset_index(drop=True)
 
-    df["등록완료일_dt"] = df[reg_date_col].apply(parse_date)
-    df["등록요청일_dt"] = df[req_date_col].apply(parse_date)
+    df["등록완료일_dt"] = df["등록 완료일"].apply(parse_date)
+    df["등록요청일_dt"] = df["등록 요청일"].apply(parse_date)
 
     iso = df["등록완료일_dt"].dt.isocalendar()
     df["년도"] = df["등록완료일_dt"].dt.year.astype("Int64")
@@ -672,12 +669,20 @@ def _build(values: list) -> pd.DataFrame:
     df["리드타임"] = (df["등록완료일_dt"] - df["등록요청일_dt"]).dt.days
     df["리드타임"] = df["리드타임"].where((df["리드타임"] >= 0) & (df["리드타임"] <= 180))
 
-    df["D_listed"] = df[listed_col].apply(pb)
-    df["E_req_done"] = df[req_done_col].apply(pb)
-    df["F_purchase_req"] = df[purchase_req_col].apply(pb)
-    df["G_purchase_done"] = df[purchase_done_col].apply(pb)
-    df["I_reg_done"] = df[reg_done_col].apply(pb)
-    df["H_filled"] = df[req_date_col].apply(h_filled)
+    # 체크박스/WIP 판단은 컬럼명 변경 영향이 없도록 열 위치 기준으로 강제 매핑
+    col_D = raw.columns[3] if len(raw.columns) > 3 else "리스트업 완료"
+    col_E = raw.columns[4] if len(raw.columns) > 4 else "검토 및 등록 요청 완료"
+    col_F = raw.columns[5] if len(raw.columns) > 5 else "상품 구매 요청"
+    col_G = raw.columns[6] if len(raw.columns) > 6 else "상품 구매 완료"
+    col_H = raw.columns[7] if len(raw.columns) > 7 else "등록 요청일"
+    col_I = raw.columns[8] if len(raw.columns) > 8 else "등록 완료 (앱 노출 시 체크)"
+
+    df["D_listed"] = df[col_D].apply(pb)
+    df["E_req_done"] = df[col_E].apply(pb)
+    df["F_purchase_req"] = df[col_F].apply(pb)
+    df["G_purchase_done"] = df[col_G].apply(pb)
+    df["I_reg_done"] = df[col_I].apply(pb)
+    df["H_filled"] = df[col_H].apply(h_filled)
 
     def country(v):
         s = str(v).strip() if pd.notna(v) else ""
@@ -717,7 +722,8 @@ def _build(values: list) -> pd.DataFrame:
     # ★ 사용자 정의 기준 WIP
     # 검토 진행중: B열(요청자) 값 있음 + E=False + 등록불가 제외
     # 등록 진행중: B열(요청자) 값 있음 + E=True + I=False + 등록불가 제외
-    df["B_exists"] = df[requester_col].apply(is_filled_text)
+    # 사용자 정의 WIP 기준: B열(요청자) 값 존재 여부
+    df["B_exists"] = df[raw.columns[1]].apply(is_filled_text)
     df["wip_검토"] = df["B_exists"] & (~df["E_req_done"]) & (~df["is_불가"])
     df["wip_등록"] = df["B_exists"] & df["E_req_done"] & (~df["I_reg_done"]) & (~df["is_불가"])
 
@@ -867,9 +873,14 @@ def landing():
 # ─────────────────────────────────────────────────────────────
 # 7. DASHBOARD
 # ─────────────────────────────────────────────────────────────
-def dashboard(df: pd.DataFrame, src: str):
+def dashboard(df: pd.DataFrame, src: str, wip_source: pd.DataFrame | None = None):
     df_kpi = df[df["년도"].isin([2024, 2025, 2026])].copy()
     df_24 = df[df["등록완료일_dt"] >= "2024-01-01"].copy()
+
+    # WIP/즉시 액션은 진행 단계 필터에 의해 사라지지 않도록 별도 데이터셋 사용
+    if wip_source is None:
+        wip_source = df.copy()
+    wip_df = wip_source.copy()
 
     ts = st.session_state.get("gsheet_ts", datetime.now().strftime("%Y-%m-%d %H:%M"))
     tag = "Google Sheet · LIVE" if src == "gsheet" else "Excel Upload"
@@ -897,11 +908,8 @@ def dashboard(df: pd.DataFrame, src: str):
     lt_med = df_kpi["리드타임"].median()
     delayed = int((df_kpi["지연여부"] == "지연").sum())
 
-    # WIP는 등록완료일 기준 연도 필터(df_kpi)가 아니라 현재 필터된 전체 데이터(df) 기준으로 집계
-    # 진행중 건은 등록완료일이 비어있는 경우가 많아 df_kpi로 자르면 누락될 수 있다.
-    wip_scope = df.copy()
-    wip_reg = wip_scope[wip_scope["wip_등록"]].copy()
-    wip_rev = wip_scope[wip_scope["wip_검토"]].copy()
+    wip_reg = wip_df[wip_df["wip_등록"]].copy()
+    wip_rev = wip_df[wip_df["wip_검토"]].copy()
     wip_tot = len(wip_reg) + len(wip_rev)
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -959,7 +967,7 @@ def dashboard(df: pd.DataFrame, src: str):
         "#f0445220",
         "#f04452",
     )
-    kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "현재 필터 기준 진행중 합계", "#d4ff00")
+    kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "검토 + 등록 진행중 합계", "#d4ff00")
 
     # ══════════════════════════════════════════════
     # SECTION 1-2 — ACTION BOARD
@@ -1695,3 +1703,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
