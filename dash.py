@@ -13,7 +13,7 @@ import streamlit as st
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P OPS Dashboard",
+    page_title="1P Ops Intelligence",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -445,6 +445,48 @@ li[role="option"]:hover {
     color: #444444;
     margin-right: 6px;
 }
+
+/* ━━━ 추가 폰트/글자 깨짐 방지 패치 ━━━ */
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] *,
+div[role="listbox"] *,
+li[role="option"] *,
+div[role="option"] * {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    color: #ffffff !important;
+}
+
+[data-testid="stDataFrameResizable"] *,
+[data-testid="stDataFrame"] *,
+.glideDataEditor *,
+.stDataFrame *,
+.stTable * {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    text-rendering: geometricPrecision !important;
+}
+
+[data-testid="stMetricValue"],
+[data-testid="stMetricLabel"],
+[data-testid="stMetricDelta"] {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+}
+
+.js-plotly-plot .plotly text,
+.js-plotly-plot .plotly .gtitle,
+.js-plotly-plot .plotly .xtick text,
+.js-plotly-plot .plotly .ytick text,
+.js-plotly-plot .plotly .legendtext {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    shape-rendering: geometricPrecision !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] > div,
+section[data-testid="stSidebar"] [data-baseweb="tag"] {
+    min-height: 40px !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -456,7 +498,7 @@ li[role="option"]:hover {
 SPREADSHEET_ID = "1e-uxQVNCCF3qS8e3a_S8sZbCx5qj343ycsEfkIF2POA"
 SHEET_NAME = "Summary"
 FIXED_REVIEWERS = ["오홍석", "유지윤", "전현희", "장근수"]
-TRUE_VALUES = {"true", "1", "y", "yes", "완료", "o", "v", "✓", "check", "checked"}
+TRUE_VALUES = {"true", "false", "1", "0", "y", "yes", "완료", "o", "v", "✓", "check", "checked", "t", "f"}
 
 STAGE_COLORS = {
     "5.등록 완료": "#05c072",
@@ -579,6 +621,14 @@ def first_valid_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
             return col
     return None
 
+
+def column_by_position(df: pd.DataFrame, pos: int, fallback: str | None = None) -> str:
+    if fallback and fallback in df.columns:
+        return fallback
+    if 0 <= pos < len(df.columns):
+        return df.columns[pos]
+    raise ValueError(f"열 위치 {pos}를 찾지 못했습니다.")
+
 # ─────────────────────────────────────────────────────────────
 # 4. PREPROCESSING
 # ─────────────────────────────────────────────────────────────
@@ -590,26 +640,26 @@ def _build(values: list) -> pd.DataFrame:
             break
 
     raw = pd.DataFrame(values[hi + 1 :], columns=values[hi])
-    raw.columns = [str(c).strip() for c in raw.columns]
+    raw.columns = [str(c).strip().replace("\n", " ").replace("\r", " ") for c in raw.columns]
 
-    brand_col = first_valid_column(raw, ["브랜드(영문)"])
-    requester_col = first_valid_column(raw, ["요청자"])
-    reviewer_col = first_valid_column(raw, ["검토자"])
-
-    if brand_col is None:
-        raise ValueError("'브랜드(영문)' 컬럼을 찾지 못했습니다.")
-    if requester_col is None:
-        raise ValueError("'요청자' 컬럼을 찾지 못했습니다.")
-    if reviewer_col is None:
-        raise ValueError("'검토자' 컬럼을 찾지 못했습니다.")
+    brand_col = column_by_position(raw, 0, first_valid_column(raw, ["브랜드(영문)"]))
+    requester_col = column_by_position(raw, 1, first_valid_column(raw, ["요청자"]))
+    reviewer_col = column_by_position(raw, 2, first_valid_column(raw, ["검토자"]))
+    listed_col = column_by_position(raw, 3, first_valid_column(raw, ["리스트업 완료"]))
+    req_done_col = column_by_position(raw, 4, first_valid_column(raw, ["검토 및 등록 요청 완료"]))
+    purchase_req_col = column_by_position(raw, 5, first_valid_column(raw, ["상품 구매 요청"]))
+    purchase_done_col = column_by_position(raw, 6, first_valid_column(raw, ["상품 구매 완료"]))
+    req_date_col = column_by_position(raw, 7, first_valid_column(raw, ["등록 요청일"]))
+    reg_done_col = column_by_position(raw, 8, first_valid_column(raw, ["등록 완료 (앱 노출 시 체크)"]))
+    reg_date_col = column_by_position(raw, 9, first_valid_column(raw, ["등록 완료일"]))
 
     df = raw[
         raw[brand_col].apply(lambda x: bool(str(x).strip()) and str(x).strip() not in ["", "nan"])
-        & (raw["등록 완료일"].astype(str).str.strip() != "#REF!")
+        & (raw[reg_date_col].astype(str).str.strip() != "#REF!")
     ].copy().reset_index(drop=True)
 
-    df["등록완료일_dt"] = df["등록 완료일"].apply(parse_date)
-    df["등록요청일_dt"] = df["등록 요청일"].apply(parse_date)
+    df["등록완료일_dt"] = df[reg_date_col].apply(parse_date)
+    df["등록요청일_dt"] = df[req_date_col].apply(parse_date)
 
     iso = df["등록완료일_dt"].dt.isocalendar()
     df["년도"] = df["등록완료일_dt"].dt.year.astype("Int64")
@@ -622,12 +672,12 @@ def _build(values: list) -> pd.DataFrame:
     df["리드타임"] = (df["등록완료일_dt"] - df["등록요청일_dt"]).dt.days
     df["리드타임"] = df["리드타임"].where((df["리드타임"] >= 0) & (df["리드타임"] <= 180))
 
-    df["D_listed"] = df["리스트업 완료"].apply(pb)
-    df["E_req_done"] = df["검토 및 등록 요청 완료"].apply(pb)
-    df["F_purchase_req"] = df["상품 구매 요청"].apply(pb)
-    df["G_purchase_done"] = df["상품 구매 완료"].apply(pb)
-    df["I_reg_done"] = df["등록 완료 (앱 노출 시 체크)"].apply(pb)
-    df["H_filled"] = df["등록 요청일"].apply(h_filled)
+    df["D_listed"] = df[listed_col].apply(pb)
+    df["E_req_done"] = df[req_done_col].apply(pb)
+    df["F_purchase_req"] = df[purchase_req_col].apply(pb)
+    df["G_purchase_done"] = df[purchase_done_col].apply(pb)
+    df["I_reg_done"] = df[reg_done_col].apply(pb)
+    df["H_filled"] = df[req_date_col].apply(h_filled)
 
     def country(v):
         s = str(v).strip() if pd.notna(v) else ""
@@ -847,8 +897,11 @@ def dashboard(df: pd.DataFrame, src: str):
     lt_med = df_kpi["리드타임"].median()
     delayed = int((df_kpi["지연여부"] == "지연").sum())
 
-    wip_reg = df_kpi[df_kpi["wip_등록"]].copy()
-    wip_rev = df_kpi[df_kpi["wip_검토"]].copy()
+    # WIP는 등록완료일 기준 연도 필터(df_kpi)가 아니라 현재 필터된 전체 데이터(df) 기준으로 집계
+    # 진행중 건은 등록완료일이 비어있는 경우가 많아 df_kpi로 자르면 누락될 수 있다.
+    wip_scope = df.copy()
+    wip_reg = wip_scope[wip_scope["wip_등록"]].copy()
+    wip_rev = wip_scope[wip_scope["wip_검토"]].copy()
     wip_tot = len(wip_reg) + len(wip_rev)
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -906,7 +959,7 @@ def dashboard(df: pd.DataFrame, src: str):
         "#f0445220",
         "#f04452",
     )
-    kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "검토 + 등록 진행중 합계", "#d4ff00")
+    kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "현재 필터 기준 진행중 합계", "#d4ff00")
 
     # ══════════════════════════════════════════════
     # SECTION 1-2 — ACTION BOARD
