@@ -1,9 +1,4 @@
-diff --git a/dash_manual_update.py b/dash_manual_update.py
-new file mode 100644
-index 0000000000000000000000000000000000000000..28cd41a1515c4b232ae766ceefe7485a57acadf6
---- /dev/null
-+++ b/dash_manual_update.py
-@@ -0,0 +1,2058 @@
+
 +import io
 +import json
 +import re
