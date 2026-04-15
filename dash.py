@@ -5,13 +5,6 @@ import time
 import uuid
 from datetime import datetime
 
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import streamlit as st
-import streamlit.components.v1 as components
-
 st.markdown("""
 <style>
 
@@ -52,6 +45,32 @@ div:contains("arrow") {
 
 </style>
 """, unsafe_allow_html=True)
+
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import streamlit as st
+
+# ===== GLOBAL VISUAL THEME FIX =====
+PLOT_BG = "#ffffff"
+FONT_COLOR = "#111111"
+PRIMARY = "#2563eb"
+SECONDARY = "#64748b"
+ACCENT = "#22c55e"
+
+def apply_plot_theme(fig):
+    fig.update_layout(
+        plot_bgcolor=PLOT_BG,
+        paper_bgcolor=PLOT_BG,
+        font=dict(color=FONT_COLOR),
+        legend=dict(font=dict(color=FONT_COLOR))
+    )
+    return fig
+
+import streamlit.components.v1 as components
+
 
 st.markdown("""
 <style>
@@ -1681,10 +1700,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
     kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "검토 + 등록 진행중 합계", "#d4ff00")
 
-    summary_text = build_exec_insight(df_kpi, wip_reg, wip_rev, blocked_df)
-    render_kpi_emphasis(total, done, delayed, wip_tot)
-    render_summary_block(summary_text, total, done, safe_rate(done, total), delayed, wip_tot)
-
+            
     # ══════════════════════════════════════════════
     # SECTION 1-4 — 등록 불가
     # ══════════════════════════════════════════════
@@ -1744,7 +1760,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 connector=dict(line=dict(color="#eeeeee", width=1.5)),
             )
         )
-        fig.update_layout(**CHART_TPL, title="<b>등록 전환 Funnel</b>", height=320)
+        fig.update_layout(**CHART_TPL, title="<b>
+
+# ===== MOVED TO BOTTOM =====
+ (최하단)</b>", height=320)
         st.plotly_chart(fig, use_container_width=True)
 
     with p2:
@@ -2400,3 +2419,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
