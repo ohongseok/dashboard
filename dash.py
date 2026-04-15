@@ -1765,7 +1765,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             title="<b>등록 완료 vs 전체</b>"
 )
 # ===== MOVED TO BOTTOM =====
- (최하단)</b>", height=320)
+         (최하단)</b>", height=320)
         st.plotly_chart(fig, use_container_width=True)
 
     with p2:
