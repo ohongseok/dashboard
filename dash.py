@@ -28,22 +28,25 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Pretendard:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-    --bg: #f5f7fb;
+    --bg: #f4f6fa;
     --surface: #ffffff;
-    --surface-soft: #fafbfc;
-    --text-1: #111827;
-    --text-2: #374151;
-    --text-3: #6b7280;
-    --line: #e5e7eb;
+    --surface-soft: #f8fafc;
+    --text-1: #0f172a;
+    --text-2: #334155;
+    --text-3: #64748b;
+    --line: #e2e8f0;
     --line-2: #eef2f7;
-    --brand: #111111;
+    --sidebar: #0b0f19;
+    --sidebar-2: #121826;
+    --sidebar-line: #243042;
+    --brand: #0f172a;
     --accent: #d4ff00;
     --green: #05c072;
-    --red: #f04452;
-    --orange: #f5a623;
-    --blue: #3b82f6;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --blue: #2563eb;
     --purple: #8b5cf6;
-    --shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+    --shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
 html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
@@ -51,11 +54,10 @@ html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="st
     color: var(--text-1) !important;
     -webkit-font-smoothing: antialiased !important;
     text-rendering: optimizeLegibility !important;
+    font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body, .main, .stApp, [data-testid="stAppViewContainer"] {
     background: var(--bg) !important;
@@ -67,6 +69,7 @@ html, body, .main, .stApp, [data-testid="stAppViewContainer"] {
     padding: 0 28px 48px 28px !important;
 }
 
+/* Common text */
 h1, h2, h3, h4, h5, h6, p, span, label, div {
     font-family: 'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
     color: inherit;
@@ -78,26 +81,24 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     color: var(--text-2) !important;
 }
 
-/* ━━━ 사이드바 ━━━ */
+/* Sidebar */
 [data-testid="stSidebar"] {
-    background: #0f1115 !important;
-    border-right: 1px solid #1f2430 !important;
-    width: 356px !important;
-    min-width: 356px !important;
-    max-width: 356px !important;
+    background: linear-gradient(180deg, var(--sidebar) 0%, #0f1420 100%) !important;
+    border-right: 1px solid var(--sidebar-line) !important;
+    width: 360px !important;
+    min-width: 360px !important;
+    max-width: 360px !important;
 }
-[data-testid="stSidebar"] > div:first-child {
-    width: 356px !important;
-}
+[data-testid="stSidebar"] > div:first-child { width: 360px !important; }
 [data-testid="stSidebar"] > div {
     padding-top: 0 !important;
-    padding-left: 24px !important;
-    padding-right: 14px !important;
+    padding-left: 26px !important;
+    padding-right: 16px !important;
 }
 [data-testid="stSidebar"] .block-container,
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
     padding-left: 10px !important;
-    padding-right: 6px !important;
+    padding-right: 8px !important;
 }
 
 [data-testid="stSidebar"] label,
@@ -108,15 +109,25 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
 [data-testid="stSidebar"] small,
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] div {
-    color: #f3f4f6 !important;
-    -webkit-text-fill-color: #f3f4f6 !important;
+    color: #f8fafc !important;
+    -webkit-text-fill-color: #f8fafc !important;
     text-shadow: none !important;
 }
 
+/* Sidebar headings */
+[data-testid="stSidebar"] .stMultiSelect label,
+[data-testid="stSidebar"] .stTextInput label,
+[data-testid="stSidebar"] .stFileUploader label {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.02em !important;
+}
+
+/* Sync button */
 [data-testid="stSidebar"] .stButton > button {
-    background: var(--accent) !important;
-    color: #111111 !important;
-    border: none !important;
+    background: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
     border-radius: 12px !important;
     font-weight: 900 !important;
     font-size: 13px !important;
@@ -126,18 +137,25 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     box-shadow: none !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: #c6ef00 !important;
+    background: #273449 !important;
+    border-color: #475569 !important;
     transform: translateY(-1px);
 }
 
+/* Sidebar tags and select */
 [data-testid="stSidebar"] [data-baseweb="tag"] {
-    background: #232833 !important;
+    background: #1f2937 !important;
     color: #ffffff !important;
-    border: 1px solid #343b49 !important;
+    border: 1px solid #334155 !important;
     min-height: 34px !important;
-    padding: 4px 8px !important;
-    border-radius: 8px !important;
-    box-shadow: inset 0 0 0 1px #343b49 !important;
+    padding: 4px 10px 4px 10px !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+[data-testid="stSidebar"] [data-baseweb="tag"]::before,
+[data-testid="stSidebar"] [data-baseweb="tag"]::after {
+    display: none !important;
+    content: none !important;
 }
 [data-testid="stSidebar"] [data-baseweb="tag"] * {
     color: #ffffff !important;
@@ -146,77 +164,89 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
     text-indent: 0 !important;
     background: transparent !important;
 }
-
-[data-testid="stSidebar"] input,
-[data-testid="stSidebar"] textarea,
-[data-testid="stSidebar"] [data-baseweb="input"] > div,
-[data-testid="stSidebar"] [data-baseweb="select"] > div,
-[data-testid="stSidebar"] [data-baseweb="base-input"] {
-    background: #171b23 !important;
+[data-testid="stSidebar"] [data-baseweb="tag"] svg:first-child,
+[data-testid="stSidebar"] [data-baseweb="tag"] [aria-hidden="true"] {
+    display: none !important;
+}
+[data-testid="stSidebar"] [data-baseweb="tag"] span {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    overflow: visible !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] * {
     color: #ffffff !important;
-    border: 1px solid #313848 !important;
-    border-radius: 10px !important;
+    fill: #cbd5e1 !important;
+    text-indent: 0 !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] > div,
+[data-testid="stSidebar"] [data-baseweb="input"] > div,
+[data-testid="stSidebar"] [data-baseweb="base-input"],
+[data-testid="stSidebar"] input,
+[data-testid="stSidebar"] textarea {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
 }
 [data-testid="stSidebar"] input::placeholder {
     color: #94a3b8 !important;
 }
 [data-testid="stSidebar"] svg {
-    fill: #d1d5db !important;
+    fill: #cbd5e1 !important;
 }
-[data-testid="stSidebar"] [data-baseweb="select"] * {
-    color: #ffffff !important;
-    fill: #d6d6d6 !important;
-    text-indent: 0 !important;
+div[role="listbox"], ul[role="listbox"] {
+    background: #111827 !important;
+    border: 1px solid #334155 !important;
 }
-
-div[role="listbox"],
-ul[role="listbox"] {
-    background: #161a22 !important;
-    border: 1px solid #313848 !important;
-}
-div[role="option"],
-li[role="option"] {
-    background: #161a22 !important;
+div[role="option"], li[role="option"] {
+    background: #111827 !important;
     color: #ffffff !important;
 }
-div[role="option"]:hover,
-li[role="option"]:hover {
-    background: #232833 !important;
+div[role="option"]:hover, li[role="option"]:hover {
+    background: #1f2937 !important;
 }
-[data-baseweb="popover"] *,
-[data-baseweb="select"] *,
-[data-baseweb="menu"] * {
+[data-baseweb="popover"] *, [data-baseweb="select"] *, [data-baseweb="menu"] * {
     color: inherit !important;
 }
 
-[data-testid="stSidebar"] [data-testid="stFileUploader"] {
-    width: 100% !important;
-}
+/* File uploader */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] { width: 100% !important; }
 [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
-    background: #151922 !important;
-    border: 1px dashed #394150 !important;
+    background: linear-gradient(180deg, #0f1625 0%, #121a2b 100%) !important;
+    border: 1px dashed #334155 !important;
     border-radius: 14px !important;
     min-height: 132px !important;
+    padding: 18px 14px !important;
 }
 [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] * {
-    color: #e5e7eb !important;
-    fill: #e5e7eb !important;
-    -webkit-text-fill-color: #e5e7eb !important;
+    color: #e2e8f0 !important;
+    fill: #e2e8f0 !important;
+    -webkit-text-fill-color: #e2e8f0 !important;
 }
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] span,
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] small,
-[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] div {
-    color: #cbd5e1 !important;
+/* hide duplicate builtin upload text/icon and keep clean secondary button */
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] svg {
+    display: none !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] button {
+    background: #1f2937 !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    border-radius: 10px !important;
+}
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] button p,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] button span,
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzoneInstructions"] button div {
+    color: #ffffff !important;
 }
 [data-testid="stSidebar"] button[kind="secondary"] {
-    background: #232833 !important;
+    background: #1f2937 !important;
     color: #ffffff !important;
-    border: 1px solid #394150 !important;
+    border: 1px solid #334155 !important;
 }
 
-/* ━━━ 상단 바 ━━━ */
+/* Topbar */
 .topbar {
-    background: #0f1115;
+    background: #0f172a;
     margin: 0 -28px 28px -28px;
     padding: 0 28px;
     min-height: 68px;
@@ -225,7 +255,7 @@ li[role="option"]:hover {
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    border-bottom: 1px solid #1f2430;
+    border-bottom: 1px solid #1e293b;
 }
 .topbar-logo {
     font-size: 20px;
@@ -233,9 +263,7 @@ li[role="option"]:hover {
     color: #ffffff;
     letter-spacing: -0.4px;
 }
-.topbar-logo span {
-    color: var(--accent);
-}
+.topbar-logo span { color: var(--accent); }
 .topbar-right {
     display: flex;
     align-items: center;
@@ -257,7 +285,7 @@ li[role="option"]:hover {
     border-radius: 999px;
 }
 
-/* ━━━ 섹션 타이틀 ━━━ */
+/* Section title */
 .sec {
     font-size: 11px;
     font-weight: 900;
@@ -273,14 +301,17 @@ li[role="option"]:hover {
     content: '';
     flex: 1;
     height: 1px;
-    background: #d9dee7;
+    background: #d8e0ea;
 }
 
-/* ━━━ KPI 카드 ━━━ */
-.kcard {
+/* Cards */
+.kcard, .action-box, .info-card, .master-box, .wip-kcard {
     background: var(--surface);
-    border-radius: 18px;
     border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+}
+.kcard {
     padding: 22px 20px 18px;
     position: relative;
     overflow: hidden;
@@ -289,10 +320,9 @@ li[role="option"]:hover {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow: var(--shadow);
 }
 .kcard:hover {
-    box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     transform: translateY(-1px);
 }
 .kcard-bar {
@@ -336,29 +366,10 @@ li[role="option"]:hover {
     border-radius: 999px;
     margin-top: 4px;
 }
-
-/* ━━━ 액션 / 정보 카드 ━━━ */
-.action-box, .info-card, .master-box, .wip-kcard {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-}
-.action-box {
-    padding: 18px 18px 14px;
-    min-height: 220px;
-}
-.info-card {
-    padding: 20px;
-}
-.master-box {
-    padding: 24px;
-}
-.wip-kcard {
-    padding: 22px 20px 18px;
-    position: relative;
-    overflow: hidden;
-}
+.action-box { padding: 18px 18px 14px; min-height: 220px; }
+.info-card { padding: 20px; }
+.master-box { padding: 24px; }
+.wip-kcard { padding: 22px 20px 18px; position: relative; overflow: hidden; }
 .action-box-title, .info-card-title {
     font-size: 11px;
     font-weight: 900;
@@ -382,12 +393,8 @@ li[role="option"]:hover {
     line-height: 1.65;
 }
 
-/* ━━━ WIP 패널 ━━━ */
-.wip-stat-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 14px;
-}
+/* WIP */
+.wip-stat-row { display: flex; gap: 8px; margin-top: 14px; }
 .wip-stat {
     flex: 1;
     border-radius: 12px;
@@ -415,12 +422,12 @@ li[role="option"]:hover {
     margin-top: 12px;
 }
 
-/* ━━━ 탭 ━━━ */
+/* Tabs */
 .stTabs [data-baseweb="tab-list"] {
     gap: 0 !important;
     background: transparent !important;
     padding: 0 !important;
-    border-bottom: 2px solid #dfe5ee !important;
+    border-bottom: 2px solid #dbe3ee !important;
     margin-bottom: 18px !important;
     flex-wrap: wrap !important;
 }
@@ -440,7 +447,7 @@ li[role="option"]:hover {
     color: var(--text-1) !important;
 }
 
-/* ━━━ Metric ━━━ */
+/* Metrics */
 [data-testid="metric-container"] {
     background: var(--surface) !important;
     border: 1px solid var(--line) !important;
@@ -463,9 +470,8 @@ li[role="option"]:hover {
     font-variant-numeric: tabular-nums !important;
 }
 
-/* ━━━ 데이터프레임 ━━━ */
-[data-testid="stDataFrame"],
-[data-testid="stDataFrameResizable"] {
+/* DataFrame */
+[data-testid="stDataFrame"], [data-testid="stDataFrameResizable"] {
     border-radius: 16px !important;
     overflow: hidden !important;
     border: 1px solid var(--line) !important;
@@ -496,12 +502,8 @@ li[role="option"]:hover {
     background: #f8fafc !important;
 }
 
-/* ━━━ 일반 입력 / 라디오 ━━━ */
-.stRadio label,
-.stSelectbox label,
-.stMultiSelect label,
-.stTextInput label,
-.stFileUploader label {
+/* General controls */
+.stRadio label, .stSelectbox label, .stMultiSelect label, .stTextInput label, .stFileUploader label {
     color: var(--text-2) !important;
     font-weight: 700 !important;
 }
@@ -509,22 +511,40 @@ li[role="option"]:hover {
     color: var(--text-1) !important;
 }
 
-/* ━━━ 플롯 영역 ━━━ */
+/* Plotly */
 .js-plotly-plot, .plotly, .main-svg {
     font-family: 'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+}
+.js-plotly-plot .plotly .modebar {
+    background: rgba(255,255,255,0.85) !important;
+    border-radius: 10px !important;
 }
 svg text {
     fill: #334155 !important;
 }
+.hoverlayer text {
+    fill: #111827 !important;
+}
+.js-plotly-plot .plotly .hoverlayer .bg {
+    fill: #ffffff !important;
+    stroke: #cbd5e1 !important;
+    stroke-width: 1 !important;
+}
+.plotly .gtitle {
+    fill: #111827 !important;
+}
+.plotly .xtitle, .plotly .ytitle {
+    fill: #475569 !important;
+}
 
-/* ━━━ 구분선 ━━━ */
+/* Divider */
 .kdiv {
     border: none;
-    border-top: 1px solid #dfe5ee;
+    border-top: 1px solid #dbe3ee;
     margin: 30px 0;
 }
 
-/* ━━━ 상태 배지 ━━━ */
+/* Misc chips */
 .note-chip, .sla-chip {
     display: inline-flex;
     align-items: center;
@@ -535,7 +555,7 @@ svg text {
     margin-right: 6px;
 }
 
-/* ━━━ 버튼 / 다운로드 ━━━ */
+/* Buttons / download */
 .stDownloadButton > button,
 .stButton > button[kind="secondary"] {
     border-radius: 12px !important;
@@ -550,7 +570,7 @@ svg text {
     border-color: #d5dbe5 !important;
 }
 
-/* ━━━ Expander ━━━ */
+/* Expander */
 details {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -558,12 +578,8 @@ details {
     padding: 4px 10px;
 }
 
-/* ━━━ 보조 텍스트 명도 개선 ━━━ */
-.filter-row-label,
-.topbar-src,
-.kcard-sub,
-.action-box-sub,
-.info-card-sub {
+/* helper texts */
+.filter-row-label, .topbar-src, .kcard-sub, .action-box-sub, .info-card-sub {
     color: var(--text-3) !important;
 }
 </style>
@@ -635,10 +651,15 @@ DELAY_MAP = {
 
 CHART_TPL = dict(
     template="plotly_white",
-    font=dict(family="Pretendard, sans-serif", size=12, color="#333333"),
-    margin=dict(l=16, r=16, t=44, b=16),
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(family="Inter, Pretendard, sans-serif", size=12, color="#334155"),
+    margin=dict(l=20, r=20, t=52, b=20),
+    paper_bgcolor="#ffffff",
+    plot_bgcolor="#ffffff",
+    hoverlabel=dict(
+        bgcolor="#ffffff",
+        bordercolor="#cbd5e1",
+        font=dict(color="#111827", family="Inter, Pretendard, sans-serif", size=13),
+    ),
 )
 
 # ─────────────────────────────────────────────────────────────
@@ -1159,7 +1180,7 @@ def sidebar(df: pd.DataFrame):
             """
         <div style='padding:20px 16px 14px;border-bottom:1px solid #1f1f1f;'>
           <div style='font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;'>
-            OPS<span style='color:#d4ff00;'>·</span>INTEL
+            OPS<span style='color:#d4ff00;'>·</span>DASHBOARD
           </div>
           <div style='font-size:9px;color:#747474;margin-top:5px;letter-spacing:2.5px;font-weight:800;'>
             KREAM · 1P PRODUCT REGISTRATION
@@ -2087,4 +2108,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
