@@ -5,8 +5,6 @@ import time
 import uuid
 from datetime import datetime
 
-
-
 st.markdown("""
 <style>
 
