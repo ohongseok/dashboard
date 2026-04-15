@@ -636,6 +636,64 @@ summary {
 )
 
 
+
+st.markdown("""
+<style>
+/* ===== v18 final UI visibility hotfix ===== */
+
+/* Main content controls and tabs */
+.stRadio label, .stRadio div, .stRadio span,
+.stTabs [data-baseweb="tab"],
+[data-testid="stSelectbox"] label,
+[data-testid="stMultiSelect"] label,
+[data-testid="stTextInput"] label {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    opacity: 1 !important;
+}
+div[role="radiogroup"] label p, div[role="radiogroup"] label span {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+}
+
+/* Ensure chart/card texts are visible */
+svg text, .plotly text, .hoverlayer text {
+    fill: #111827 !important;
+}
+.js-plotly-plot .plotly .hoverlayer .bg {
+    fill: #ffffff !important;
+    stroke: #cbd5e1 !important;
+}
+
+/* Uploader duplicate text cleanup */
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzoneInstructions"] > div:first-child,
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] svg {
+    display: none !important;
+}
+[data-testid="stFileUploader"] button {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stFileUploader"] button span:nth-of-type(n+2) {
+    display: none !important;
+}
+
+/* Broken icon text fallback */
+span.material-symbols-rounded,
+span.material-symbols-outlined {
+    font-family: sans-serif !important;
+}
+summary::marker {
+    display: none !important;
+}
+
+/* Global readable text */
+h1, h2, h3, h4, p, span, div, label {
+    text-shadow: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────────────────────
 # 0-1. ACCESS GATE
 # ─────────────────────────────────────────────────────────────
@@ -1333,7 +1391,7 @@ def sidebar(df: pd.DataFrame):
             """
         <div style='padding:20px 16px 14px;border-bottom:1px solid #1f1f1f;'>
           <div style='font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;'>
-            OPS<span style='color:#d4ff00;'>·</span>INTEL
+            OPS DASHBOARD
           </div>
           <div style='font-size:9px;color:#747474;margin-top:5px;letter-spacing:2.5px;font-weight:800;'>
             KREAM · 1P PRODUCT REGISTRATION
@@ -1463,7 +1521,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     st.markdown(
         f"""
     <div class='topbar'>
-      <div class='topbar-logo'>OPS<span>·</span>INTEL</div>
+      <div class='topbar-logo'>OPS DASHBOARD</div>
       <div class='topbar-right'>
         <span class='topbar-src'>{tag} · {ts}</span>
         <span class='live-chip'>LIVE</span>
@@ -1576,7 +1634,15 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     reg_cols = ["브랜드(영문)", "요청자_정제", "검토자_정제", "국내해외", "현재단계", "진행경과일", "SLA상태", "비고_txt"]
     reg_show = wip_reg[reg_cols].rename(columns={"브랜드(영문)":"브랜드", "요청자_정제":"요청자", "검토자_정제":"검토자", "비고_txt":"비고"})
     if reg_show.empty:
-        st.success("현재 등록 진행중 브랜드 없음")
+        st.markdown(
+            """
+            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:18px 16px;
+                        color:#111827;font-size:14px;font-weight:700;box-shadow:0 4px 12px rgba(15,23,42,0.04);">
+                현재 등록 진행중 브랜드 없음
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     else:
         reg_show = reg_show.sort_values(["진행경과일", "브랜드"], ascending=[False, True])
         render_header_filter_table(reg_show, height=350, key="reg_main", accent="#3b82f6")
@@ -1601,7 +1667,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 ],
                 textinfo="value+percent previous",
                 textfont=dict(size=13, color="#ffffff"),
-                marker=dict(color=["#444444", "#666666", "#888888", "#05c072"]),
+                marker=dict(color=["#111111", "#333333", "#666666", "#999999"]),
                 connector=dict(line=dict(color="#eeeeee", width=1.5)),
             )
         )
@@ -1660,7 +1726,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     # SECTION 3 — 2024+ 심화 분석
     # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>2024+ 운영 트렌드 심화 분석</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>운영 지표 딥 케이스</div>", unsafe_allow_html=True)
 
     if df_24.empty:
         st.info("선택 필터 내 2024년 이후 데이터가 없습니다.")
@@ -1706,10 +1772,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                     y=ts_df["등록률"],
                     name="등록률",
                     mode="lines+markers",
-                    line=dict(color="#05c072", width=2.5),
+                    line=dict(color="#111111", width=2.5),
                     marker=dict(size=5),
                     fill="tozeroy",
-                    fillcolor="rgba(5,192,114,0.07)",
+                    fillcolor="rgba(17,17,17,0.06)",
                 ),
                 row=2,
                 col=1,
@@ -1717,19 +1783,19 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             fig.update_layout(**CHART_TPL, height=460, barmode="overlay")
             fig.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
             st.plotly_chart(fig, use_container_width=True)
-            with st.expander("상세 수치"):
-                st.dataframe(
-                    ts_df.style.format(
-                        {
-                            "등록완료": "{:,}",
-                            "전체건수": "{:,}",
-                            "평균리드타임": "{:.1f}",
-                            "등록률": "{:.1f}%",
-                        }
-                    ),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+            st.markdown("<div style='margin-top:14px;font-size:13px;font-weight:800;color:#111827;'>상세 수치</div>", unsafe_allow_html=True)
+            st.dataframe(
+                ts_df.style.format(
+                    {
+                        "등록완료": "{:,}",
+                        "전체건수": "{:,}",
+                        "평균리드타임": "{:.1f}",
+                        "등록률": "{:.1f}%",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
 
         with tab2:
             lt = df_24[df_24["리드타임"].notna()].copy()
@@ -1816,22 +1882,22 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 fig.update_layout(**CHART_TPL, height=330)
                 st.plotly_chart(fig, use_container_width=True)
             if len(ddf) > 0:
-                with st.expander(f"지연 건 상세 ({len(ddf)}건)"):
-                    sc = [
-                        "브랜드(영문)",
-                        "요청자_정제",
-                        "검토자_정제",
-                        "국내해외",
-                        "지연분류",
-                        "지연 사유",
-                        "리드타임",
-                        "현재단계",
-                    ]
-                    st.dataframe(
-                        ddf[sc].sort_values("리드타임", ascending=False),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
+                st.markdown(f"<div style='margin-top:14px;font-size:13px;font-weight:800;color:#111827;'>지연 건 상세 ({len(ddf)}건)</div>", unsafe_allow_html=True)
+                sc = [
+                    "브랜드(영문)",
+                    "요청자_정제",
+                    "검토자_정제",
+                    "국내해외",
+                    "지연분류",
+                    "지연 사유",
+                    "리드타임",
+                    "현재단계",
+                ]
+                st.dataframe(
+                    ddf[sc].sort_values("리드타임", ascending=False),
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
         with tab4:
             pr = (
@@ -1850,7 +1916,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 
             fig = make_subplots(rows=1, cols=3, subplot_titles=("담당 건수", "등록률 (%)", "평균 리드타임 (일)"))
             for i, (c_, col_) in enumerate(
-                [("담당건수", "#111111"), ("등록률", "#05c072"), ("평균리드타임", "#f5a623")]
+                [("담당건수", "#111111"), ("등록률", "#111111"), ("평균리드타임", "#111111")]
             ):
                 fig.add_trace(
                     go.Bar(
@@ -2261,4 +2327,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
 
