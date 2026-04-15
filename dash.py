@@ -64,12 +64,7 @@ h1, h2, h3, h4, h5, h6, p, span, label, div {
 }
 [data-testid="stSidebar"] > div {
     padding-top: 0 !important;
-    padding-left: 22px !important;
-}
-[data-testid="stSidebar"] .block-container,
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-    padding-left: 10px !important;
-    padding-right: 8px !important;
+    padding-left: 14px !important;
 }
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p,
@@ -579,7 +574,6 @@ def check_password() -> bool:
         or st.secrets.get("login_password")
         or "ohs"
     )
-
     if st.session_state.get("_auth_ok", False):
         return True
 
@@ -592,7 +586,6 @@ def check_password() -> bool:
         """,
         unsafe_allow_html=True,
     )
-
     pw = st.text_input("비밀번호", type="password", key="app_password_input")
     login = st.button("입장", type="primary", use_container_width=True, key="app_password_submit")
     if login:
@@ -855,7 +848,7 @@ def _build(values: list) -> pd.DataFrame:
     df["지연여부"] = df["지연분류"].apply(lambda x: "지연" if x != "없음" else "정상")
 
     df["B_exists"] = df[requester_col].apply(is_filled_text)
-    df["wip_검토"] = df["B_exists"] & (~df["E_req_done"]) & (~df["is_불가"])
+    df["wip_검토"] = df["B_exists"] & (~df["E_req_done"]) & (~df["I_reg_done"]) & (~df["is_불가"])
     df["wip_등록"] = df["B_exists"] & df["E_req_done"] & (~df["I_reg_done"]) & (~df["is_불가"])
 
     df["wip_종류"] = ""
@@ -879,8 +872,9 @@ def _build(values: list) -> pd.DataFrame:
 
     df["SLA상태"] = df.apply(sla_status, axis=1)
     df["등록병목"] = df["wip_등록"] & (df["진행경과일"].fillna(0) > 5)
-    df["include_in_scope"] = df["H_filled"] | df["is_불가"]
-    df["I_reg_done_valid"] = df["I_reg_done"] & (~df["is_불가"])
+    df["include_in_scope"] = True
+    df["I_reg_done_valid"] = df["I_reg_done"]
+    df["분석모수"] = df[brand_col].apply(is_filled_text)
 
     return df
 
@@ -1277,10 +1271,10 @@ def landing():
 # 7. DASHBOARD
 # ─────────────────────────────────────────────────────────────
 def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
-    df_kpi = df[(df["년도"].isin([2024, 2025, 2026])) | (df["is_불가"] & df["년도"].isna())].copy()
-    df_24 = df[((df["등록요청일_dt"] >= "2024-01-01")) | (df["is_불가"] & df["등록요청일_dt"].isna())].copy()
+    df_kpi = df[df["년도"].isin([2024, 2025, 2026]) | df["년도"].isna()].copy()
+    df_24 = df[(df["등록요청일_dt"] >= "2024-01-01") | df["등록요청일_dt"].isna()].copy()
     scope_wip = df_scope_wip.copy()
-    scope_wip = scope_wip[((scope_wip["년도"].fillna(2024).astype("Int64") >= 2024)) | (scope_wip["is_불가"] & scope_wip["년도"].isna())]
+    scope_wip = scope_wip[(scope_wip["년도"].fillna(2024).astype("Int64") >= 2024) | scope_wip["년도"].isna()]
 
     ts = st.session_state.get("gsheet_ts", datetime.now().strftime("%Y-%m-%d %H:%M"))
     tag = "Google Sheet · LIVE" if src == "gsheet" else "Excel Upload"
@@ -1302,8 +1296,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     st.markdown("<div class='sec'>종합 운영 지표</div>", unsafe_allow_html=True)
 
-    total = len(df_kpi)
-    done = int(df_kpi["I_reg_done_valid"].sum())
+    total = int(df_kpi["분석모수"].sum()) if "분석모수" in df_kpi.columns else len(df_kpi)
+    done = int(df_kpi["I_reg_done"].sum())
     lt_avg = df_kpi["리드타임"].mean()
     lt_med = df_kpi["리드타임"].median()
     delayed = int((df_kpi["지연여부"] == "지연").sum())
@@ -1337,13 +1331,13 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             unsafe_allow_html=True,
         )
 
-    kcard(c1, "전체 분석 건수", f"{total:,}", "건", "2024–2026 기준", "#111111")
+    kcard(c1, "전체 분석 건수", f"{total:,}", "건", "A열 브랜드 기준", "#111111")
     kcard(
         c2,
         "최종 등록 완료",
         f"{done:,}",
         "건",
-        "누적 등록 성공",
+        "I열 체크 기준",
         "#05c072",
         f"등록률 {safe_rate(done, total)}%",
         "#05c07220",
@@ -1416,12 +1410,12 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     with p1:
         fig = go.Figure(
             go.Funnel(
-                y=["리스트업 완료", "검토/등록 요청", "구매 완료", "최종 등록"],
+                y=["전체 분석", "검토 진행", "검토/등록 요청", "최종 등록"],
                 x=[
-                    int(df_kpi.loc[~df_kpi["is_불가"], "D_listed"].sum()),
+                    int(df_kpi["분석모수"].sum()) if "분석모수" in df_kpi.columns else len(df_kpi),
+                    int((df_kpi["B_exists"] & ~df_kpi["I_reg_done"] & ~df_kpi["is_불가"]).sum()),
                     int(df_kpi.loc[~df_kpi["is_불가"], "E_req_done"].sum()),
-                    int(df_kpi.loc[~df_kpi["is_불가"], "G_purchase_done"].sum()),
-                    int(df_kpi.loc[~df_kpi["is_불가"], "I_reg_done_valid"].sum()),
+                    int(df_kpi["I_reg_done"].sum()),
                 ],
                 textinfo="value+percent previous",
                 textfont=dict(size=13, color="#ffffff"),
@@ -1498,8 +1492,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 df_24.dropna(subset=[gc])
                 .groupby(gc)
                 .agg(
-                    등록완료=("I_reg_done_valid", "sum"),
-                    전체건수=("I_reg_done", "count"),
+                    등록완료=("I_reg_done", "sum"),
+                    전체건수=("분석모수", "sum"),
                     평균리드타임=("리드타임", "mean"),
                 )
                 .reset_index()
@@ -1662,7 +1656,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 df_24.groupby("검토자_정제")
                 .agg(
                     담당건수=("I_reg_done", "count"),
-                    등록완료=("I_reg_done_valid", "sum"),
+                    등록완료=("I_reg_done", "sum"),
                     평균리드타임=("리드타임", "mean"),
                     지연건수=("지연여부", lambda x: (x == "지연").sum()),
                 )
@@ -1694,7 +1688,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 
             preq = (
                 df_24.groupby("요청자_정제")
-                .agg(요청건수=("I_reg_done", "count"), 등록완료=("I_reg_done_valid", "sum"))
+                .agg(요청건수=("분석모수", "sum"), 등록완료=("I_reg_done", "sum"))
                 .reset_index()
             )
             preq["등록률"] = (preq["등록완료"] / preq["요청건수"] * 100).round(1)
@@ -1721,8 +1715,8 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     yoy = (
         df.groupby("년도")
         .agg(
-            전체건수=("I_reg_done", "count"),
-            등록완료=("I_reg_done_valid", "sum"),
+            전체건수=("분석모수", "sum"),
+            등록완료=("I_reg_done", "sum"),
             평균리드타임=("리드타임", "mean"),
             지연건수=("지연여부", lambda x: (x == "지연").sum()),
         )
@@ -1818,7 +1812,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
             담당건수=("브랜드(영문)", "count"),
             검토진행중=("wip_검토", "sum"),
             등록진행중=("wip_등록", "sum"),
-            등록완료=("I_reg_done_valid", "sum"),
+            등록완료=("I_reg_done", "sum"),
             등록불가=("is_불가", "sum"),
             SLA위반=("SLA상태", lambda x: (x == "위반").sum()),
             평균진행경과일=("진행경과일", "mean"),
@@ -1838,6 +1832,9 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
         hide_index=True,
         height=260,
     )
+
+    if False:
+        pass
 
     # ══════════════════════════════════════════════
     # SECTION 1-3 — SLA
