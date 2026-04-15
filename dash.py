@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P Ops Intelligence",
+    page_title="1P 통합페이지 DASHBOARD ",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -639,6 +639,111 @@ def check_password() -> bool:
             st.error("비밀번호가 올바르지 않습니다.")
     return False
 
+
+
+st.markdown("""
+<style>
+/* ===== FINAL UI HOTFIX ===== */
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] button {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 14px !important;
+    font-weight: 900 !important;
+    text-shadow: none !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover,
+[data-testid="stSidebar"] button:hover {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+[data-testid="stSidebar"] .stButton > button p,
+[data-testid="stSidebar"] .stButton > button span,
+[data-testid="stSidebar"] .stButton > button div {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stFileUploader"] section > div:first-child,
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] svg,
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzoneInstructions"] > div:first-child {
+    display: none !important;
+}
+
+[data-testid="stFileUploader"] button span + span {
+    display: none !important;
+}
+[data-testid="stFileUploader"] button {
+    background: #1e293b !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+}
+[data-testid="stFileUploader"] button p,
+[data-testid="stFileUploader"] button span,
+[data-testid="stFileUploader"] button div {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="select"] input {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    min-width: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+[data-testid="stSidebar"] [data-baseweb="tag"] {
+    position: relative !important;
+    z-index: 2 !important;
+}
+[data-testid="stSidebar"] [data-baseweb="tag"]::before,
+[data-testid="stSidebar"] [data-baseweb="tag"]::after,
+[data-testid="stSidebar"] [data-baseweb="tag"] svg:first-child,
+[data-testid="stSidebar"] [data-baseweb="tag"] [aria-hidden="true"] {
+    display: none !important;
+    content: none !important;
+}
+
+summary::marker {
+    color: #0f172a !important;
+}
+details summary {
+    color: #0f172a !important;
+}
+
+[data-testid="stDataFrame"] select,
+[data-testid="stDataFrame"] input,
+[data-testid="stDataFrameResizable"] select,
+[data-testid="stDataFrameResizable"] input,
+div[role="listbox"],
+ul[role="listbox"],
+div[role="option"],
+li[role="option"] {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+.js-plotly-plot .plotly .modebar {
+    background: rgba(255,255,255,0.96) !important;
+}
+.js-plotly-plot .plotly .hoverlayer text {
+    fill: #0f172a !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────────────────────
 # 1. CONSTANTS
 # ─────────────────────────────────────────────────────────────
@@ -1199,7 +1304,7 @@ def sidebar(df: pd.DataFrame):
             """
         <div style='padding:20px 16px 14px;border-bottom:1px solid #1f1f1f;'>
           <div style='font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;'>
-            OPS<span style='color:#d4ff00;'>·</span>INTEL
+            1P OPS<span style='color:#d4ff00;'>·</span>DASHBOARD
           </div>
           <div style='font-size:9px;color:#747474;margin-top:5px;letter-spacing:2.5px;font-weight:800;'>
             KREAM · 1P PRODUCT REGISTRATION
@@ -1211,7 +1316,7 @@ def sidebar(df: pd.DataFrame):
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-        if st.button("↻  구글 시트 동기화", use_container_width=True, type="primary", key="sync_btn_sidebar_main"):
+        if st.button("↻  구글 시트 동기화", use_container_width=True, key="sync_btn_sidebar_main"):
             with st.spinner("연결 중..."):
                 vals, err = load_from_gsheet()
             if err:
@@ -2127,3 +2232,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
