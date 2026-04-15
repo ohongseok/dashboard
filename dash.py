@@ -1,3 +1,9 @@
+import io
+import json
+import re
+import time
+import uuid
+from datetime import datetime
 
 st.markdown("""
 <style>
@@ -40,12 +46,6 @@ div:contains("arrow") {
 </style>
 """, unsafe_allow_html=True)
 
-import io
-import json
-import re
-import time
-import uuid
-from datetime import datetime
 
 import pandas as pd
 import plotly.express as px
@@ -2402,4 +2402,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
