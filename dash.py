@@ -12,11 +12,40 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import streamlit.components.v1 as components
 
+
+st.markdown("""
+<style>
+
+/* FORCE remove duplicate upload text */
+[data-testid="stFileUploader"] button span {display:inline !important;}
+[data-testid="stFileUploader"] button span:nth-child(2){display:none !important;}
+[data-testid="stFileUploader"] button span:nth-child(3){display:none !important;}
+
+/* remove label text completely */
+[data-testid="stFileUploader"] label {display:none !important;}
+
+/* fix white on white text */
+.plotly .xtick text, .plotly .ytick text {
+    fill:#111 !important;
+}
+
+/* arrow text fix */
+span:contains("arrow"),
+div:contains("arrow") {
+    display:none !important;
+}
+
+/* section title rename spacing fix */
+h1,h2,h3 {color:#111 !important;}
+
+</style>
+""", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────────────────────
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P 통합페이지 DASHBOARD ",
+    page_title="1P Ops Intelligence",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -1304,7 +1333,7 @@ def sidebar(df: pd.DataFrame):
             """
         <div style='padding:20px 16px 14px;border-bottom:1px solid #1f1f1f;'>
           <div style='font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;'>
-            1P OPS<span style='color:#d4ff00;'>·</span>DASHBOARD
+            OPS<span style='color:#d4ff00;'>·</span>INTEL
           </div>
           <div style='font-size:9px;color:#747474;margin-top:5px;letter-spacing:2.5px;font-weight:800;'>
             KREAM · 1P PRODUCT REGISTRATION
@@ -1556,7 +1585,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     # SECTION 2 — 파이프라인 (2024–2026)
     # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>등록 파이프라인 · 2024–2026</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>등록 파이프라인</div>", unsafe_allow_html=True)
 
     p1, p2, p3 = st.columns(3)
 
@@ -1863,7 +1892,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     # SECTION 4 — YoY (2023–2026)
     # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>연도별 YoY 성과 비교 · 2024–2026</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>연도별 YoY</div>", unsafe_allow_html=True)
 
     yoy = (
         df.groupby("년도")
@@ -2053,7 +2082,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     # SECTION 5 — 마스터 트래킹 (2024–2026)
     # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>마스터 업무 트래킹 · 2024–2026 전체</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>마스터 업무 트래킹</div>", unsafe_allow_html=True)
 
     MCOLS = [
         "브랜드(영문)",
