@@ -1760,8 +1760,10 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 connector=dict(line=dict(color="#eeeeee", width=1.5)),
             )
         )
-        fig.update_layout(**CHART_TPL, title="<b>
-
+        fig.update_layout(
+            **CHART_TPL,
+            title="<b>등록 완료 vs 전체</b>"
+)
 # ===== MOVED TO BOTTOM =====
  (최하단)</b>", height=320)
         st.plotly_chart(fig, use_container_width=True)
