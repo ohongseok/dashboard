@@ -52,23 +52,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-
-# ===== GLOBAL VISUAL THEME FIX =====
-PLOT_BG = "#ffffff"
-FONT_COLOR = "#111111"
-PRIMARY = "#2563eb"
-SECONDARY = "#64748b"
-ACCENT = "#22c55e"
-
-def apply_plot_theme(fig):
-    fig.update_layout(
-        plot_bgcolor=PLOT_BG,
-        paper_bgcolor=PLOT_BG,
-        font=dict(color=FONT_COLOR),
-        legend=dict(font=dict(color=FONT_COLOR))
-    )
-    return fig
-
 import streamlit.components.v1 as components
 
 
@@ -1508,101 +1491,6 @@ def landing():
             unsafe_allow_html=True,
         )
 
-
-# ─────────────────────────────────────────────────────────────
-# 6-1. EXECUTIVE SUMMARY HELPERS
-# ─────────────────────────────────────────────────────────────
-def build_exec_insight(df_kpi: pd.DataFrame, wip_reg: pd.DataFrame, wip_rev: pd.DataFrame, blocked_df: pd.DataFrame) -> str:
-    total = len(df_kpi)
-    done = int((df_kpi["I_reg_done"] & (~df_kpi["is_불가"])).sum()) if "I_reg_done" in df_kpi.columns else 0
-    reg_rate = safe_rate(done, total)
-    delayed = int((df_kpi["지연여부"] == "지연").sum()) if "지연여부" in df_kpi.columns else 0
-    delayed_rate = safe_rate(delayed, total)
-    bottleneck = len(wip_reg[wip_reg["진행경과일"].fillna(0) > 5]) if "진행경과일" in wip_reg.columns else 0
-    review_ct = len(wip_rev)
-    blocked_ct = len(blocked_df)
-
-    parts = []
-    parts.append(f"현재 전체 분석 {total:,}건 중 등록완료 {done:,}건으로 등록률은 {reg_rate:.1f}%입니다.")
-    if delayed > 0:
-        parts.append(f"지연 건은 {delayed:,}건({delayed_rate:.1f}%)입니다.")
-    if review_ct > 0:
-        parts.append(f"검토 진행중 {review_ct:,}건,")
-    if len(wip_reg) > 0:
-        parts.append(f"등록 진행중 {len(wip_reg):,}건이 남아 있습니다.")
-    if bottleneck > 0:
-        parts.append(f"그중 {bottleneck:,}건은 병목 대상으로 우선 확인이 필요합니다.")
-    if blocked_ct > 0:
-        parts.append(f"등록 불가 클로즈 케이스는 {blocked_ct:,}건입니다.")
-    return " ".join(parts)
-
-def render_summary_block(summary_text: str, total: int, done: int, reg_rate: float, delayed: int, wip_total: int):
-    st.markdown(
-        f"""
-        <div style="background:linear-gradient(135deg,#ffffff 0%,#f8fbff 100%);
-                    border:1px solid #dbe5f0;border-radius:20px;padding:22px 22px 18px;
-                    box-shadow:0 10px 28px rgba(15,23,42,.06);margin:6px 0 24px;">
-          <div style="font-size:11px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#64748b;margin-bottom:10px;">
-            Executive Summary
-          </div>
-          <div style="font-size:18px;font-weight:800;color:#0f172a;line-height:1.6;margin-bottom:16px;">
-            {summary_text}
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;">
-            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
-              <div style="font-size:10px;font-weight:900;color:#64748b;letter-spacing:1.2px;text-transform:uppercase;">Total</div>
-              <div style="font-size:24px;font-weight:900;color:#0f172a;">{total:,}</div>
-            </div>
-            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
-              <div style="font-size:10px;font-weight:900;color:#64748b;letter-spacing:1.2px;text-transform:uppercase;">Done</div>
-              <div style="font-size:24px;font-weight:900;color:#059669;">{done:,}</div>
-            </div>
-            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
-              <div style="font-size:10px;font-weight:900;color:#64748b;letter-spacing:1.2px;text-transform:uppercase;">Rate</div>
-              <div style="font-size:24px;font-weight:900;color:#2563eb;">{reg_rate:.1f}%</div>
-            </div>
-            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
-              <div style="font-size:10px;font-weight:900;color:#64748b;letter-spacing:1.2px;text-transform:uppercase;">Delay</div>
-              <div style="font-size:24px;font-weight:900;color:#ef4444;">{delayed:,}</div>
-            </div>
-            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;">
-              <div style="font-size:10px;font-weight:900;color:#64748b;letter-spacing:1.2px;text-transform:uppercase;">WIP</div>
-              <div style="font-size:24px;font-weight:900;color:#7c3aed;">{wip_total:,}</div>
-            </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-def render_kpi_emphasis(total: int, done: int, delayed: int, wip_total: int):
-    st.markdown(
-        f"""
-        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin:0 0 24px;">
-          <div style="background:#0f172a;color:#fff;border-radius:22px;padding:22px 24px;box-shadow:0 14px 32px rgba(15,23,42,.12);">
-            <div style="font-size:11px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:#cbd5e1;">Priority KPI</div>
-            <div style="margin-top:8px;font-size:42px;font-weight:900;line-height:1;">{done:,}<span style="font-size:18px;color:#cbd5e1;"> 건</span></div>
-            <div style="margin-top:6px;font-size:13px;font-weight:700;color:#e2e8f0;">최종 등록완료</div>
-            <div style="margin-top:14px;height:8px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;">
-              <div style="width:{safe_rate(done,total):.1f}%;height:100%;background:linear-gradient(90deg,#60a5fa,#22c55e);"></div>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:#cbd5e1;">전체 분석 대비 등록률 {safe_rate(done,total):.1f}%</div>
-          </div>
-          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:20px;box-shadow:0 10px 24px rgba(15,23,42,.06);">
-            <div style="font-size:11px;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;color:#64748b;">Risk Alert</div>
-            <div style="margin-top:12px;font-size:36px;font-weight:900;color:#ef4444;">{delayed:,}</div>
-            <div style="font-size:13px;font-weight:700;color:#334155;">지연 발생 건수</div>
-          </div>
-          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:20px;box-shadow:0 10px 24px rgba(15,23,42,.06);">
-            <div style="font-size:11px;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;color:#64748b;">Action Queue</div>
-            <div style="margin-top:12px;font-size:36px;font-weight:900;color:#7c3aed;">{wip_total:,}</div>
-            <div style="font-size:13px;font-weight:700;color:#334155;">진행 중 WIP</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 # ─────────────────────────────────────────────────────────────
 # 7. DASHBOARD
 # ─────────────────────────────────────────────────────────────
@@ -1700,7 +1588,6 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     )
     kcard(c5, "진행 중 WIP", f"{wip_tot:,}", "건", "검토 + 등록 진행중 합계", "#d4ff00")
 
-            
     # ══════════════════════════════════════════════
     # SECTION 1-4 — 등록 불가
     # ══════════════════════════════════════════════
@@ -1760,12 +1647,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
                 connector=dict(line=dict(color="#eeeeee", width=1.5)),
             )
         )
-        fig.update_layout(
-            **CHART_TPL,
-            title="<b>등록 완료 vs 전체</b>"
-)
-# ===== MOVED TO BOTTOM =====
-         (최하단)"</b>, height=320)
+        fig.update_layout(**CHART_TPL, title="<b>등록 전환 Funnel</b>", height=320)
         st.plotly_chart(fig, use_container_width=True)
 
     with p2:
@@ -2421,4 +2303,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
