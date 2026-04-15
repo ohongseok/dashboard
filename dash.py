@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P OPS Dashboard",
+    page_title="1P Ops Intelligence",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -1180,7 +1180,7 @@ def sidebar(df: pd.DataFrame):
             """
         <div style='padding:20px 16px 14px;border-bottom:1px solid #1f1f1f;'>
           <div style='font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1;'>
-            OPS<span style='color:#d4ff00;'>·</span>DASHBOARD
+            OPS<span style='color:#d4ff00;'>·</span>INTEL
           </div>
           <div style='font-size:9px;color:#747474;margin-top:5px;letter-spacing:2.5px;font-weight:800;'>
             KREAM · 1P PRODUCT REGISTRATION
@@ -2108,3 +2108,52 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+st.markdown("""
+<style>
+
+/* 완전 제거: 태그 앞 검정 원/아이콘 */
+[data-baseweb="tag"]::before,
+[data-baseweb="tag"]::after,
+[data-baseweb="tag"] svg,
+[data-baseweb="tag"] [aria-hidden="true"] {
+    display: none !important;
+    content: none !important;
+}
+
+/* 텍스트만 남김 */
+[data-baseweb="tag"] {
+    padding-left: 10px !important;
+    background: #1f2937 !important;
+    color: #ffffff !important;
+}
+
+/* 필터 영역 (컬럼 필터 포함) 강제 가독성 */
+[data-testid="stDataFrame"] input,
+[data-testid="stDataFrame"] select,
+[data-testid="stDataFrame"] div {
+    background: #ffffff !important;
+    color: #111 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* 컬럼 필터 텍스트 */
+[data-testid="stDataFrame"] input::placeholder {
+    color: #6b7280 !important;
+}
+
+/* 필터 dropdown */
+[data-baseweb="select"] div {
+    background: #ffffff !important;
+    color: #111 !important;
+}
+
+/* arrow 텍스트 깨짐 방지 */
+span:contains("arrow") {
+    display: none !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
