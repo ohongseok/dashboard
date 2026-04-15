@@ -5,6 +5,14 @@ import time
 import uuid
 from datetime import datetime
 
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import streamlit as st
+import streamlit.components.v1 as components
+pd .DataFrame
+
 st.markdown("""
 <style>
 
@@ -45,15 +53,6 @@ div:contains("arrow") {
 
 </style>
 """, unsafe_allow_html=True)
-
-
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import streamlit as st
-import streamlit.components.v1 as components
-
 
 st.markdown("""
 <style>
