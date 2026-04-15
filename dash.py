@@ -1,45 +1,3 @@
-
-st.markdown("""
-<style>
-
-/* ===== FINAL CLEAN VISIBILITY ===== */
-
-/* remove weird arrow text */
-* {
-    text-shadow: none !important;
-}
-
-/* ensure all text visible */
-body, span, div, p, label {
-    color:#111 !important;
-}
-
-/* card alert fix */
-.stAlert {
-    background:#ffffff !important;
-    color:#111 !important;
-    border:1px solid #ddd !important;
-}
-
-/* plot text fix */
-.plotly text {
-    fill:#111 !important;
-}
-
-/* unify graph colors */
-.js-plotly-plot {
-    background:#ffffff !important;
-}
-
-/* remove ghost labels */
-span:contains("arrow"),
-div:contains("arrow") {
-    display:none !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
 import io
 import json
 import re
@@ -1702,7 +1660,7 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
     # ══════════════════════════════════════════════
     # SECTION 3 — 2024+ 심화 분석
     # ══════════════════════════════════════════════
-    st.markdown("<div class='sec'>운영 지표 딥 케이스</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>2024+ 운영 트렌드 심화 분석</div>", unsafe_allow_html=True)
 
     if df_24.empty:
         st.info("선택 필터 내 2024년 이후 데이터가 없습니다.")
@@ -2303,3 +2261,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
