@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 # 0. PAGE CONFIG
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="1P Ops Intelligence",
+    page_title="1P OPS Dashboard",
     page_icon="⬛",
     layout="wide",
     initial_sidebar_state="expanded",
