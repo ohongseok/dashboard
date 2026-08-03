@@ -1,3 +1,4 @@
+import hmac
 import io
 import json
 import re
@@ -11,6 +12,56 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 import streamlit.components.v1 as components
+
+
+# ─────────────────────────────────────────────────────────────
+# 0. PAGE CONFIG
+# ─────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="1P Ops Intelligence",
+    page_icon="⬛",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+def require_password():
+    """Render a password gate before loading any app data."""
+    if st.session_state.get("app_authenticated", False):
+        return
+
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"], [data-testid="stHeader"] {display: none;}
+        .block-container {max-width: 480px; padding-top: 18vh;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.title("🔒 비공개 앱")
+    st.caption("계속하려면 비밀번호를 입력하세요.")
+
+    with st.form("password_form", clear_on_submit=False):
+        password = st.text_input("비밀번호", type="password")
+        submitted = st.form_submit_button("접속", use_container_width=True)
+
+    if submitted:
+        try:
+            expected_password = str(st.secrets["APP_PASSWORD"])
+        except KeyError:
+            st.error("앱 비밀번호가 설정되지 않았습니다.")
+            st.stop()
+
+        if hmac.compare_digest(password, expected_password):
+            st.session_state["app_authenticated"] = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 올바르지 않습니다.")
+
+    st.stop()
+
+
+require_password()
 
 
 st.markdown("""
@@ -40,16 +91,6 @@ h1,h2,h3 {color:#111 !important;}
 
 </style>
 """, unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────────────────────
-# 0. PAGE CONFIG
-# ─────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="1P Ops Intelligence",
-    page_icon="⬛",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 
 st.markdown(
     """
