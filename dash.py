@@ -737,40 +737,6 @@ h1, h2, h3, h4, p, span, div, label {
 </style>
 """, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────────
-# 0-1. ACCESS GATE
-# ─────────────────────────────────────────────────────────────
-def check_password() -> bool:
-    secret_pw = (
-        st.secrets.get("password")
-        or st.secrets.get("app_password")
-        or st.secrets.get("login_password")
-        or "ohs"
-    )
-    if st.session_state.get("_auth_ok", False):
-        return True
-
-    st.markdown(
-        """
-        <div style='max-width:420px;margin:56px auto 8px;background:#ffffff;border:1px solid #e8e8e8;border-radius:18px;padding:28px 24px;box-shadow:0 10px 24px rgba(0,0,0,0.05);'>
-          <div style='font-size:24px;font-weight:900;color:#111;letter-spacing:-0.8px;'>Dashboard Access</div>
-          <div style='font-size:12px;color:#777;margin-top:8px;line-height:1.7;'>권한이 있는 사용자만 대시보드에 접근할 수 있습니다.</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    pw = st.text_input("비밀번호", type="password", key="app_password_input")
-    login = st.button("입장", type="primary", use_container_width=True, key="app_password_submit")
-    if login:
-        if pw == str(secret_pw):
-            st.session_state["_auth_ok"] = True
-            st.rerun()
-        else:
-            st.error("비밀번호가 올바르지 않습니다.")
-    return False
-
-
-
 st.markdown("""
 <style>
 /* ===== FINAL UI HOTFIX ===== */
@@ -2308,8 +2274,6 @@ def dashboard(df: pd.DataFrame, src: str, df_scope_wip: pd.DataFrame):
 # 8. MAIN
 # ─────────────────────────────────────────────────────────────
 def main():
-    if not check_password():
-        st.stop()
     src = st.session_state.get("source", "none")
 
     if src == "gsheet" and "gsheet_values" in st.session_state:
